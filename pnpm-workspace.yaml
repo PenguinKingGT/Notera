@@ -1,0 +1,5 @@
+# Single-package project; hoisted dependencies support Electron packaging.
+nodeLinker: hoisted
+allowBuilds:
+  esbuild: true
+  electron-winstaller: true
