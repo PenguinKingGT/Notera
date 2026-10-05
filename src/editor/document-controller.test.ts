@@ -25,6 +25,15 @@ function success<T>(value: T): FileResult<T> {
 function setup() {
   const session = new EditorSession(createPianoScore({ id: 's' }))
   const api: DesktopApi = {
+    recognition: {
+      getSettings: vi.fn(),
+      saveSettings: vi.fn(),
+      chooseSources: vi.fn(),
+      getTask: vi.fn(),
+      run: vi.fn(),
+      cancel: vi.fn(),
+      result: vi.fn(),
+    },
     getAppInfo: vi.fn(),
     initializeDocument: vi
       .fn()
@@ -245,5 +254,36 @@ test('PDF export submits one snapshot while ongoing edits retain their history a
   expect(controller.getSnapshot().message).toContain('2 页')
   session.undo()
   expect(session.getSnapshot().score).toEqual(captured)
+  controller.stop()
+})
+
+test('recognition import preserves current music on cancel or failed creation and becomes a normal dirty score', async () => {
+  const { session, api, controller } = setup()
+  await controller.start()
+  session.inputPitch('C')
+  const current = session.getSnapshot().score
+  const recognized = createPianoScore({ id: 'recognized', title: 'AI piano' })
+  controller.importRecognition(recognized)
+  expect(controller.getSnapshot().prompt).toBe('recognition')
+  controller.cancel()
+  expect(session.getSnapshot().score).toBe(current)
+  controller.importRecognition(recognized)
+  vi.mocked(api.createDocument).mockResolvedValueOnce({
+    status: 'error',
+    message: 'Recovery write failed',
+  })
+  controller.discard()
+  await vi.waitFor(() => expect(controller.getSnapshot().busy).toBe(false))
+  expect(session.getSnapshot().score).toBe(current)
+  expect(controller.getSnapshot().prompt).toBe('recognition')
+  controller.discard()
+  await vi.waitFor(() => expect(controller.getSnapshot().busy).toBe(false))
+  expect(session.getSnapshot().score).toEqual(recognized)
+  expect(session.getSnapshot().dirty).toBe(true)
+  session.inputPitch('D')
+  session.undo()
+  expect(session.getSnapshot().score).toEqual(recognized)
+  expect(await controller.save()).toBe(true)
+  expect(session.getSnapshot().dirty).toBe(false)
   controller.stop()
 })

@@ -1,5 +1,6 @@
 /** Compose the desktop piano editor, delegating music transactions and engraving to independent modules. */
 import { useState, useSyncExternalStore, useEffect } from 'react'
+import { RecognitionPanel } from './components/editor/RecognitionPanel'
 import { FilePlus2, Music2, FolderOpen, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EditorToolbar } from '@/components/editor/EditorToolbar'
@@ -112,7 +113,7 @@ export function App() {
       className="editor-shell"
       onKeyDown={(event) => {
         const target = event.target as HTMLElement
-        if (target.closest('[role="alertdialog"]')) {
+        if (target.closest('[role="alertdialog"], [role="dialog"]')) {
           return
         }
         if (
@@ -269,6 +270,15 @@ export function App() {
               Boolean(documentState.prompt)
             }
           />
+          <RecognitionPanel
+            documents={documents}
+            disabled={
+              !documentState.ready ||
+              documentState.busy ||
+              Boolean(documentState.startup) ||
+              Boolean(documentState.prompt)
+            }
+          />
           <Button size="sm" variant="ghost" onClick={showAppInfo}>
             关于 Notera
           </Button>
@@ -291,7 +301,11 @@ export function App() {
         className="editor-body"
         inert={documentState.editingLocked || !documentState.ready}
       >
-        <EditorInspector session={session} state={state} />
+        <EditorInspector
+          key={documentState.document?.documentId ?? 'startup'}
+          session={session}
+          state={state}
+        />
         <section className="score-workspace" aria-label="五线谱工作空间">
           <div className="workspace-bar">
             <span>五线谱</span>

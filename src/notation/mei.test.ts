@@ -91,3 +91,103 @@ test('print projection keeps real rests while gaps remain invisible and unselect
     ),
   ).toBe(false)
 })
+
+test('custom repeat counts remain visible in editor and PDF projections, including empty bars', () => {
+  const initial = createPianoScore({ id: 'repeat-score', measureCount: 2 })
+  const score = applyScoreCommand(initial, {
+    kind: 'put-mark',
+    mark: {
+      id: 'repeat-mark',
+      kind: 'repeat',
+      startMeasureId: initial.measures[0].id,
+      endMeasureId: initial.measures[1].id,
+      times: 3,
+    },
+  })
+  for (const placeholders of [true, false]) {
+    const xml = new DOMParser().parseFromString(
+      projectToMei(score, { placeholders }).mei,
+      'application/xml',
+    )
+    expect(xml.querySelector('dir')?.textContent).toBe('3×')
+    expect(xml.querySelector('dir')?.getAttribute('staff')).toBe('1')
+    expect(xml.querySelector('dir')?.getAttribute('tstamp')).toBe('1')
+    expect(xml.querySelector('measure')?.getAttribute('left')).toBe('rptstart')
+  }
+})
+
+test('screen and print share independent per-voice beams and keep all note targets', () => {
+  let score = createPianoScore({ id: 'beaming-score', measureCount: 1 })
+  for (const voice of score.voices) {
+    for (let index = 0; index < 4; index += 1) {
+      score = applyScoreCommand(score, {
+        kind: 'insert-event',
+        target: { measureId: score.measures[0].id, voiceId: voice.id },
+        event: {
+          id: `${voice.id}-event-${index}`,
+          kind: 'note',
+          onset: fraction(index, 8),
+          duration: { denominator: 8, dots: 0 },
+          notes: [
+            {
+              id: `${voice.id}-note-${index}`,
+              pitch: { step: 'C', alter: 0, octave: 4 },
+            },
+          ],
+        },
+      })
+    }
+  }
+  const before = JSON.stringify(score)
+  for (const placeholders of [true, false]) {
+    const projection = projectToMei(score, { placeholders })
+    const xml = new DOMParser().parseFromString(
+      projection.mei,
+      'application/xml',
+    )
+    expect(xml.querySelector('parsererror')).toBeNull()
+    expect(xml.querySelectorAll('beam')).toHaveLength(4)
+    expect(
+      [...xml.querySelectorAll('beam')].map(
+        (beam) => beam.querySelectorAll('note').length,
+      ),
+    ).toEqual([2, 2, 2, 2])
+    expect(
+      Object.values(projection.targets).filter(
+        (target) => target.kind === 'event',
+      ),
+    ).toHaveLength(8)
+    expect(xml.querySelectorAll('beam rest, beam space')).toHaveLength(0)
+  }
+  expect(JSON.stringify(score)).toBe(before)
+})
+
+test('keeps two consecutive eighth-triplet groups as distinct tuplet beams', () => {
+  let score = createPianoScore({ id: 'tuplets', measureCount: 1 })
+  for (let index = 0; index < 6; index += 1) {
+    score = applyScoreCommand(score, {
+      kind: 'insert-event',
+      target: { measureId: score.measures[0].id, voiceId: score.voices[0].id },
+      event: {
+        id: `event-${index}`,
+        kind: 'note',
+        onset: fraction(index, 12),
+        duration: { denominator: 8, dots: 0, tuplet: { actual: 3, normal: 2 } },
+        notes: [
+          { id: `note-${index}`, pitch: { step: 'D', alter: 0, octave: 4 } },
+        ],
+      },
+    })
+  }
+  const xml = new DOMParser().parseFromString(
+    projectToMei(score).mei,
+    'application/xml',
+  )
+  expect(xml.querySelectorAll('tuplet beam')).toHaveLength(2)
+  expect(
+    [...xml.querySelectorAll('tuplet beam')].map(
+      (beam) => beam.querySelectorAll('note').length,
+    ),
+  ).toEqual([3, 3])
+  expect(xml.querySelectorAll('beam tuplet')).toHaveLength(0)
+})

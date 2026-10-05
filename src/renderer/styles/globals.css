@@ -465,3 +465,57 @@ kbd {
   fill: var(--playback-accent);
   color: var(--playback-accent);
 }
+
+/* Keep long position labels readable without widening the piano workspace. */
+.mark-inspector [data-slot='field-label'] {
+  margin: 0;
+}
+.mark-inspector [data-slot='native-select-wrapper'] {
+  width: 100%;
+}
+.mark-inspector select {
+  padding-right: 24px;
+  text-overflow: ellipsis;
+}
+.mark-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.mark-list p {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.mark-help {
+  margin-top: 10px;
+  color: var(--muted-foreground);
+}
+
+/* Recognition controls scroll within their modal while the score remains a separate editable document. */
+.recognition-dialog {
+  max-width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+.recognition-dialog [data-slot='native-select-wrapper'] {
+  width: 100%;
+}
+.recognition-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.recognition-sources li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}

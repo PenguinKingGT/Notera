@@ -1,6 +1,13 @@
 /** Project native musical content into MEI with detached input placeholders and stable selection mappings. */
 import { add, compare, durationTime, fraction, subtract } from '../core'
-import type { Fraction, MusicalEvent, Score, WrittenPitch } from '../core'
+import type {
+  Fraction,
+  Measure,
+  MusicalEvent,
+  Score,
+  WrittenPitch,
+} from '../core'
+import { beamGroups } from './beaming'
 
 /** Musical insertion location independent of engraved coordinates. */
 export interface InputCursor {
@@ -166,6 +173,19 @@ export function projectToMei(
     return `<chord xml:id="${id}" ${duration}>${notes}</chord>`
   }
 
+  /** Emit shared screen/print beam containers while preserving each event's selection identity. */
+  function beamedXml(
+    events: readonly MusicalEvent[],
+    meter: Measure['timeSignature'],
+  ): string {
+    return beamGroups(events, meter)
+      .map((group) => {
+        const content = group.map(eventXml).join('')
+        return group.length > 1 ? `<beam>${content}</beam>` : content
+      })
+      .join('')
+  }
+
   /** Fill only the rendering projection, allowing click-to-input without adding rests to the score. */
   function gapXml(
     cursor: InputCursor,
@@ -257,12 +277,24 @@ export function projectToMei(
                     end = add(next.onset, durationTime(next.duration))
                   }
                   music.push(
-                    `<tuplet num="${ratio.actual}" numbase="${ratio.normal}"${group.length < ratio.actual ? ' num.visible="false" bracket.visible="false"' : ''}>${group.map(eventXml).join('')}</tuplet>`,
+                    `<tuplet num="${ratio.actual}" numbase="${ratio.normal}"${group.length < ratio.actual ? ' num.visible="false" bracket.visible="false"' : ''}>${beamedXml(group, measure.timeSignature)}</tuplet>`,
                   )
                   onset = end
                 } else {
-                  music.push(eventXml(event))
-                  onset = add(event.onset, durationTime(event.duration))
+                  // Gather only contiguous ordinary music. Gaps and tuplet boundaries stay outside beams.
+                  const group: MusicalEvent[] = [event]
+                  let end = add(event.onset, durationTime(event.duration))
+                  while (
+                    events[index + 1] &&
+                    !events[index + 1].duration.tuplet &&
+                    compare(events[index + 1].onset, end) === 0
+                  ) {
+                    const next = events[++index]
+                    group.push(next)
+                    end = add(next.onset, durationTime(next.duration))
+                  }
+                  music.push(beamedXml(group, measure.timeSignature))
+                  onset = end
                 }
               }
               music.push(
@@ -284,7 +316,21 @@ export function projectToMei(
       const repeatEnd = score.marks.some(
         (mark) => mark.kind === 'repeat' && mark.endMeasureId === measure.id,
       )
-      return `${context}<measure xml:id="${meiId(measure.id)}" n="${measureIndex + 1}"${repeatStart ? ' left="rptstart"' : ''}${repeatEnd ? ' right="rptend"' : ''}>${staves}</measure>`
+      // A plain repeat bar conventionally implies two visits; show custom counts in every projection.
+      const repeatInstructions = score.marks
+        .filter(
+          (mark) =>
+            mark.kind === 'repeat' &&
+            mark.startMeasureId === measure.id &&
+            mark.times !== 2,
+        )
+        .map((mark) =>
+          mark.kind === 'repeat'
+            ? `<dir staff="1" tstamp="1" place="above">${mark.times}×</dir>`
+            : '',
+        )
+        .join('')
+      return `${context}<measure xml:id="${meiId(measure.id)}" n="${measureIndex + 1}"${repeatStart ? ' left="rptstart"' : ''}${repeatEnd ? ' right="rptend"' : ''}>${staves}${repeatInstructions}</measure>`
     })
     .join('')
   const staffDefinitions = score.staves

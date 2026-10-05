@@ -1,9 +1,20 @@
 /** Expose document intentions through a fixed IPC allowlist, including a close listener with explicit cleanup. */
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS } from '../shared/desktop-api'
+import { RECOGNITION_CHANNELS } from '../shared/recognition-api'
 import type { DesktopApi } from '../shared/desktop-api'
 
 const desktopApi: DesktopApi = {
+  recognition: {
+    getSettings: () => ipcRenderer.invoke(RECOGNITION_CHANNELS.getSettings),
+    saveSettings: (input) =>
+      ipcRenderer.invoke(RECOGNITION_CHANNELS.saveSettings, input),
+    chooseSources: () => ipcRenderer.invoke(RECOGNITION_CHANNELS.chooseSources),
+    getTask: () => ipcRenderer.invoke(RECOGNITION_CHANNELS.getTask),
+    run: (input) => ipcRenderer.invoke(RECOGNITION_CHANNELS.run, input),
+    cancel: (id) => ipcRenderer.invoke(RECOGNITION_CHANNELS.cancel, id),
+    result: (input) => ipcRenderer.invoke(RECOGNITION_CHANNELS.result, input),
+  },
   getAppInfo: () => ipcRenderer.invoke(IPC_CHANNELS.getAppInfo),
   initializeDocument: (score) =>
     ipcRenderer.invoke(IPC_CHANNELS.initializeDocument, score),

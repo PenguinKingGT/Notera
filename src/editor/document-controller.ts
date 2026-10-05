@@ -1,5 +1,5 @@
 /** Coordinate asynchronous desktop document operations without coupling the music editor to React or Electron. */
-import { createPianoScore } from '../core'
+import { createPianoScore, parseScore } from '../core'
 import type { Score } from '../core'
 import type {
   DesktopApi,
@@ -10,7 +10,8 @@ import type {
 import { EditorSession } from './session'
 
 /** Replacement intentions share one save/discard/cancel decision. */
-export type DocumentAction = 'new' | 'sample' | 'open' | 'import' | 'close'
+export type DocumentAction =
+  'new' | 'sample' | 'open' | 'import' | 'recognition' | 'close'
 
 /** Cached UI state describes file operations independently of musical editing snapshots. */
 export interface DocumentState {
@@ -44,6 +45,7 @@ export class DocumentController {
   #queuedClose = false
   #scheduled: { score: Score; dirty: boolean; documentId: string } | null = null
   #unsubscribe: (() => void) | null = null
+  #recognized: Score | null = null
 
   /** Bind only the narrow desktop API and a provider for the original bundled sample. */
   constructor(
@@ -165,6 +167,26 @@ export class DocumentController {
     }
   }
 
+  /** Stage validated recognition music before asking the existing save/discard/cancel question. */
+  importRecognition(score: Score): boolean {
+    if (
+      !this.#state.ready ||
+      this.#state.busy ||
+      this.#state.startup ||
+      this.#state.prompt
+    ) {
+      return false
+    }
+    try {
+      this.#recognized = parseScore(score)
+    } catch {
+      this.publish({ error: '识谱结果不是有效乐谱，当前音乐已保留。' })
+      return false
+    }
+    this.request('recognition')
+    return true
+  }
+
   /** Guard replacements using the current music snapshot, including edits made during a previous save. */
   request(action: DocumentAction): void {
     if (!this.#state.ready) {
@@ -196,6 +218,9 @@ export class DocumentController {
   /** Cancel the pending transition without altering the score or history. */
   cancel(): void {
     if (!this.#state.busy) {
+      if (this.#state.prompt === 'recognition') {
+        this.#recognized = null
+      }
       if (this.#state.prompt === 'close') {
         void this.api
           .cancelCloseRequest()
@@ -346,17 +371,23 @@ export class DocumentController {
           this.report(result)
         }
       } else {
+        if (action === 'recognition' && !this.#recognized) {
+          throw new Error('Missing recognition result')
+        }
         const score =
-          action === 'sample'
-            ? this.sample()
-            : createPianoScore({
-                id: globalThis.crypto.randomUUID(),
-                title: '未命名钢琴谱',
-                measureCount: 4,
-              })
+          action === 'recognition'
+            ? this.#recognized!
+            : action === 'sample'
+              ? this.sample()
+              : createPianoScore({
+                  id: globalThis.crypto.randomUUID(),
+                  title: '未命名钢琴谱',
+                  measureCount: 4,
+                })
         const result = await this.api.createDocument(score)
         if (result.status === 'success') {
           this.session.reset(score, action === 'new')
+          this.#recognized = null
           this.publish({ document: result.value, prompt: null })
         } else {
           this.report(result)

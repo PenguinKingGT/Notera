@@ -1,5 +1,6 @@
 /** Define narrow document capabilities; paths are display metadata and never accepted as renderer write targets. */
 import type { Score } from '../core'
+import type { RecognitionApi } from './recognition-api'
 
 /** Desktop application metadata. */
 export interface AppInfo {
@@ -35,6 +36,7 @@ export interface DocumentStartup {
 
 /** Native file operations expose intentions and snapshots, never arbitrary filesystem access. */
 export interface DesktopApi {
+  readonly recognition: RecognitionApi
   getAppInfo: () => Promise<AppInfo>
   initializeDocument: (score: Score) => Promise<FileResult<DocumentStartup>>
   createDocument: (score: Score) => Promise<FileResult<DocumentInfo>>

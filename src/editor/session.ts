@@ -15,6 +15,8 @@ import type {
   ScoreCommand,
 } from '../core'
 import type { InputCursor, NotationTarget } from '../notation/mei'
+import type { MarkInput } from './marks'
+import { markAnchors, MARK_LABELS } from './marks'
 
 /** A cached external-store snapshot shared by React and interaction tests. */
 export interface EditorSnapshot {
@@ -110,17 +112,69 @@ export class EditorSession {
   private execute(
     command: ScoreCommand,
     patch: Partial<EditorSnapshot> = {},
-  ): void {
+    errorMessage = '无法完成此编辑：请检查剩余时值、同声部重叠、重复音高或延音线端点。',
+  ): boolean {
     try {
       this.#editor.execute(command)
       this.publish({ ...patch, error: null })
+      return true
     } catch (error) {
       console.error('Musical edit rejected', error)
-      this.publish({
-        error:
-          '无法完成此编辑：请检查剩余时值、同声部重叠、重复音高或延音线端点。',
-      })
+      this.publish({ error: errorMessage })
+      return false
     }
+  }
+
+  /** Create or revise one mark atomically; editing a removed identity never recreates stale content. */
+  putMark(mark: MarkInput, markId?: string): boolean {
+    if (
+      markId &&
+      !this.#editor.score.marks.some((existing) => existing.id === markId)
+    ) {
+      this.publish({ error: '该记号已删除，请重新选择。' })
+      return false
+    }
+    // Reapplying the same anchors updates the mark instead of stacking identical curves or dynamics.
+    const anchors = markAnchors(mark)
+    const existing = this.#editor.score.marks.find((candidate) => {
+      const candidateAnchors = markAnchors(candidate)
+      return (
+        candidate.kind === mark.kind &&
+        candidateAnchors.start === anchors.start &&
+        candidateAnchors.end === anchors.end
+      )
+    })
+    if (markId && existing && existing.id !== markId) {
+      this.publish({
+        error: '该位置已有同类型记号，请修改已有记号或选择其他位置。',
+      })
+      return false
+    }
+    const message =
+      mark.kind === 'tie'
+        ? '延音线需要连接同声部、时值连续且音高拼写相同的两个音；每个音只允许一条入线和出线。'
+        : mark.kind === 'repeat'
+          ? '反复起止小节必须按顺序且不与其他反复重叠，演奏遍数为 2–16。'
+          : mark.kind === 'dynamic'
+            ? '力度位置已不存在，请重新选择音乐事件。'
+            : `${MARK_LABELS[mark.kind]}端点必须按音乐时间向前，踏板限同谱表、连奏线限同声部音符。`
+    return this.execute(
+      {
+        kind: 'put-mark',
+        mark: { ...mark, id: markId ?? existing?.id ?? this.#id() },
+      },
+      {},
+      message,
+    )
+  }
+
+  /** Remove a selected mark as one undoable change, preserving its endpoint music. */
+  deleteMark(markId: string): void {
+    this.execute(
+      { kind: 'delete-mark', markId },
+      {},
+      '该记号已删除，请重新选择。',
+    )
   }
 
   /** Reset a document after the UI has confirmed any unsaved changes. */

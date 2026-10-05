@@ -2,17 +2,22 @@
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, net } from 'electron'
 import type { IpcMainInvokeEvent } from 'electron'
 import { IPC_CHANNELS } from '../shared/desktop-api'
 import type { AppInfo } from '../shared/desktop-api'
 import { DocumentService } from './document-service'
 import { renderStaffPdf } from './staff-pdf'
 import { RecoveryStore } from './recovery-store'
+import { RecognitionSettingsStore } from './recognition/settings'
+import { RecognitionService, recognitionResult } from './recognition/service'
+import { RecognitionError } from '../recognition/errors'
+import { RECOGNITION_CHANNELS } from '../shared/recognition-api'
 
 const currentDirectory = fileURLToPath(new URL('.', import.meta.url))
 const developmentUrl = process.env.ELECTRON_RENDERER_URL
 const services = new Map<number, DocumentService>()
+const recognitionServices = new Map<number, RecognitionService>()
 let quitRequested = false
 const closeHandlers = new Map<number, (id: unknown) => Promise<unknown>>()
 
@@ -55,6 +60,40 @@ function registerDocumentHandlers(): void {
       version: app.getVersion(),
     }
   })
+  const recognitionHandlers = {
+    [RECOGNITION_CHANNELS.getSettings]: (service: RecognitionService) =>
+      recognitionResult(() => service.settings.get()),
+    [RECOGNITION_CHANNELS.saveSettings]: (
+      service: RecognitionService,
+      input: unknown,
+    ) =>
+      recognitionResult(async () => {
+        if (service.getTask()?.running) {
+          throw new RecognitionError('请先结束当前识谱任务，再修改服务配置。')
+        }
+        return service.settings.save(input)
+      }),
+    [RECOGNITION_CHANNELS.chooseSources]: (service: RecognitionService) =>
+      service.chooseSources(),
+    [RECOGNITION_CHANNELS.getTask]: (service: RecognitionService) =>
+      recognitionResult(async () => service.getTask()),
+    [RECOGNITION_CHANNELS.run]: (service: RecognitionService, input: unknown) =>
+      recognitionResult(() => service.run(input)),
+    [RECOGNITION_CHANNELS.cancel]: (
+      service: RecognitionService,
+      input: unknown,
+    ) => recognitionResult(async () => service.cancel(input)),
+    [RECOGNITION_CHANNELS.result]: (
+      service: RecognitionService,
+      input: unknown,
+    ) => recognitionResult(async () => service.result(input)),
+  }
+  for (const [channel, handler] of Object.entries(recognitionHandlers)) {
+    ipcMain.handle(channel, (event, input: unknown) => {
+      const window = trustedWindow(event)
+      return handler(recognitionServices.get(window.id)!, input)
+    })
+  }
   const handlers = {
     [IPC_CHANNELS.initializeDocument]: (
       service: DocumentService,
@@ -186,6 +225,34 @@ async function createWindow(): Promise<void> {
     renderStaffPdf,
   )
   services.set(window.id, service)
+  const recognition = new RecognitionService(
+    new RecognitionSettingsStore(
+      join(app.getPath('userData'), 'ai', 'settings.json'),
+      {
+        available: () =>
+          safeStorage.isEncryptionAvailable() &&
+          (process.platform !== 'linux' ||
+            safeStorage.getSelectedStorageBackend() !== 'basic_text'),
+        encrypt: (text) => safeStorage.encryptString(text),
+        decrypt: (bytes) => safeStorage.decryptString(bytes),
+      },
+    ),
+    async () => {
+      const selected = await dialog.showOpenDialog(window, {
+        title: '选择要识别的五线谱',
+        filters: [
+          {
+            name: '五线谱图片或 PDF',
+            extensions: ['png', 'jpg', 'jpeg', 'pdf'],
+          },
+        ],
+        properties: ['openFile', 'multiSelections'],
+      })
+      return selected.canceled ? null : selected.filePaths
+    },
+    net.fetch,
+  )
+  recognitionServices.set(window.id, recognition)
   let allowClose = false
   let rendererUnavailable = false
   window.webContents.on('render-process-gone', () => {
@@ -210,6 +277,8 @@ async function createWindow(): Promise<void> {
     }
   })
   window.on('closed', () => {
+    recognition.dispose()
+    recognitionServices.delete(window.id)
     services.delete(window.id)
     closeHandlers.delete(window.id)
     if (quitRequested) {

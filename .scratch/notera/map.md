@@ -10,7 +10,10 @@
 - 乐谱交换已完成：[MusicXML 乐谱交换](issues/06-musicxml-exchange.md)。
 - 试听已完成：[钢琴试听与谱面跟随](issues/07-piano-playback.md)。
 - PDF 已完成：[五线谱 PDF 导出](issues/08-staff-pdf-export.md)，基础五线谱输入、编辑、保存、试听、导出闭环已打通。
-- 待服务配置：[真实模型识谱评估](issues/03-live-recognition-evaluation.md)。
+- 记号编辑已完成：[音乐记号编辑](issues/09-musical-mark-editing.md)。
+- 自动连梁已完成：[按拍号自动连梁](issues/10-automatic-beaming.md)。
+- AI 基础流程已完成：[AI 识谱基础流程](issues/11-recognition-workflow.md)，真实准确度仍待任务 03 验证。
+- 已完成一次真实单图基线：[真实模型识谱评估](issues/03-live-recognition-evaluation.md)，结果失败，仍需改进与扩大评估。
 
 ## Decisions-so-far
 
@@ -30,7 +33,22 @@
 
 - [任务 08](issues/08-staff-pdf-export.md)：快照一致的矢量 A4 五线谱 PDF、独立排版线程与安全原子输出已实现；97 个单元测试、8 个生产/打包桌面测试通过，单页/两页 PDF 经独立读取器及渲染检查。
 
+- [任务 09](issues/09-musical-mark-editing.md)：五类音乐记号的创建/修改/删除、端点筛选及重复目标保护已实现；非默认反复次数进入谱面/PDF，106 个单元测试和 9 个 macOS 生产桌面测试通过。
+
+- [任务 10](issues/10-automatic-beaming.md)：按精确时间与拍号自动连梁，支持普通短时值、附点、和弦和三连音；屏幕及 PDF 共用规则，121 个单元测试和 10 个 macOS 生产桌面测试通过，实际矢量 PDF 已独立读取并检查。
+
+- [任务 11](issues/11-recognition-workflow.md)：OpenAI 兼容/Claude 配置、加密 Key、图片/PDF 分页、排序、部分失败重试和可编辑新文档导入已实现；137 项单元测试、11 项 macOS 生产及未签名打包桌面测试通过，协议使用本地假服务验证。
+
+- [任务 12](issues/12-recognition-request-policy.md)：应用推理策略自动/手动适配、默认 180 秒超时、旧配置兼容及预算/取消/超时诊断已实现；142 项单元测试和 2 项 macOS 生产桌面测试通过，不追加付费模型调用。
+
+- [任务 13](issues/13-deepseek-direct-provider.md)：移除应用 OpenRouter 专用适配，加入 DeepSeek 官方配置、OpenAI/Anthropic 路径与参数、旧策略迁移和 PDF 输入提示；143 项单元测试、2 项生产和 2 项打包桌面测试通过，原路径打包应用已更新。
+
+- [任务 14](issues/14-neutral-recognition-configuration.md)：恢复通用 AI 配置，移除专用品牌入口及默认值，协议切换不改地址；保留既有配置与兼容能力。143 项单元测试及 2 项生产、2 项打包桌面测试通过，已更新本地应用。
+
+- 用户要求 AI 识谱准确度优化放到其余计划功能完成后，当前先提交代码；[任务 03](issues/03-live-recognition-evaluation.md)已明确延后，不进入当前自动推进范围。
+
 ## Fog
 
 - 真实曲目的排版质量、高级编辑交互、更广的 MusicXML 曲目/GUI 互操作、其他平台打包和分发许可仍需验证。
-- 云端识谱准确度待服务配置可用后实测。
+- OpenRouter DeepSeek V4.1 Flash 的《虫儿飞》单图实测未生成有效乐谱；[原始失败与音乐检查](research/live-chongerfei.md)已记录，分段识别及更广准确度评估待后续验证。
+- 识谱来源页按独立片段组合；跨页上下文/连线修复与导入后片段合并仍需后续实现。

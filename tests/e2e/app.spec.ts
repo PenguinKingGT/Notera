@@ -16,6 +16,7 @@ test('launches the desktop shell with isolated IPC', async () => {
     ).toBeVisible()
     expect(await page.evaluate(() => 'require' in window)).toBe(false)
     expect(await page.evaluate(() => Object.keys(window.notera))).toEqual([
+      'recognition',
       'getAppInfo',
       'initializeDocument',
       'createDocument',
@@ -29,6 +30,17 @@ test('launches the desktop shell with isolated IPC', async () => {
       'closeDocument',
       'cancelCloseRequest',
       'onCloseRequested',
+    ])
+    expect(
+      await page.evaluate(() => Object.keys(window.notera.recognition)),
+    ).toEqual([
+      'getSettings',
+      'saveSettings',
+      'chooseSources',
+      'getTask',
+      'run',
+      'cancel',
+      'result',
     ])
   } finally {
     await stopDesktop(app)

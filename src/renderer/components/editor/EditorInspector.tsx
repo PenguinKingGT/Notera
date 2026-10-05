@@ -1,6 +1,7 @@
 /** Show active musical location and selected-note properties independently of score engraving. */
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { MarkInspector } from './MarkInspector'
 import { findEvent } from '../../../editor/session'
 import type { EditorSession, EditorSnapshot } from '../../../editor/session'
 
@@ -126,6 +127,7 @@ export function EditorInspector({
           删除事件
         </Button>
       </div>
+      <MarkInspector key={state.score.id} session={session} state={state} />
       <div className="input-help">
         <h3>键盘输入</h3>
         <p>
