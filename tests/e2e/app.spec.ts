@@ -1,13 +1,10 @@
-import { resolve } from 'node:path'
-import { _electron as electron } from 'playwright'
+/** Verify the isolated window exposes only documented desktop capabilities. */
+import { rm } from 'node:fs/promises'
+import { launchDesktop, stopDesktop } from './desktop'
 import { expect, test } from '@playwright/test'
 
 test('launches the desktop shell with isolated IPC', async () => {
-  const executablePath = process.env.NOTERA_EXECUTABLE_PATH
-  const app = await electron.launch({
-    executablePath,
-    args: executablePath ? [] : [resolve('.')],
-  })
+  const { app, userDataDir } = await launchDesktop()
   try {
     const page = await app.firstWindow()
     await expect(
@@ -20,8 +17,21 @@ test('launches the desktop shell with isolated IPC', async () => {
     expect(await page.evaluate(() => 'require' in window)).toBe(false)
     expect(await page.evaluate(() => Object.keys(window.notera))).toEqual([
       'getAppInfo',
+      'initializeDocument',
+      'createDocument',
+      'openDocument',
+      'importMusic',
+      'exportMusic',
+      'exportPdf',
+      'saveDocument',
+      'checkpointDocument',
+      'resolveRecovery',
+      'closeDocument',
+      'cancelCloseRequest',
+      'onCloseRequested',
     ])
   } finally {
-    await app.close()
+    await stopDesktop(app)
+    await rm(userDataDir, { recursive: true, force: true })
   }
 })

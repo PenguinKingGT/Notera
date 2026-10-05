@@ -1,0 +1,405 @@
+{
+  "format": "notera-score",
+  "version": 1,
+  "score": {
+    "id": "core-piano",
+    "title": "钢琴练习 · 片段",
+    "staves": [
+      {
+        "id": "staff-upper",
+        "clef": "treble"
+      },
+      {
+        "id": "staff-lower",
+        "clef": "bass"
+      }
+    ],
+    "voices": [
+      {
+        "id": "voice-upper",
+        "staffId": "staff-upper"
+      },
+      {
+        "id": "voice-inner",
+        "staffId": "staff-upper"
+      },
+      {
+        "id": "voice-lower",
+        "staffId": "staff-lower"
+      }
+    ],
+    "measures": [
+      {
+        "id": "measure-1",
+        "timeSignature": {
+          "beats": 4,
+          "beatType": 4
+        },
+        "keySignature": {
+          "fifths": 0
+        },
+        "voices": [
+          {
+            "voiceId": "voice-upper",
+            "events": [
+              {
+                "id": "event-chord",
+                "onset": {
+                  "numerator": 0,
+                  "denominator": 1
+                },
+                "duration": {
+                  "denominator": 4,
+                  "dots": 1
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-chord-c",
+                    "pitch": {
+                      "step": "C",
+                      "alter": 0,
+                      "octave": 5
+                    }
+                  },
+                  {
+                    "id": "note-chord-g",
+                    "pitch": {
+                      "step": "G",
+                      "alter": 0,
+                      "octave": 5
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "event-triplet-1",
+                "onset": {
+                  "numerator": 3,
+                  "denominator": 8
+                },
+                "duration": {
+                  "denominator": 8,
+                  "dots": 0,
+                  "tuplet": {
+                    "actual": 3,
+                    "normal": 2
+                  }
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-triplet-1",
+                    "pitch": {
+                      "step": "F",
+                      "alter": 1,
+                      "octave": 5
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "event-triplet-2",
+                "onset": {
+                  "numerator": 11,
+                  "denominator": 24
+                },
+                "duration": {
+                  "denominator": 8,
+                  "dots": 0,
+                  "tuplet": {
+                    "actual": 3,
+                    "normal": 2
+                  }
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-triplet-2",
+                    "pitch": {
+                      "step": "G",
+                      "alter": 0,
+                      "octave": 5
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "event-triplet-3",
+                "onset": {
+                  "numerator": 13,
+                  "denominator": 24
+                },
+                "duration": {
+                  "denominator": 8,
+                  "dots": 0,
+                  "tuplet": {
+                    "actual": 3,
+                    "normal": 2
+                  }
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-triplet-3",
+                    "pitch": {
+                      "step": "A",
+                      "alter": -1,
+                      "octave": 5
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "event-tie-start",
+                "onset": {
+                  "numerator": 3,
+                  "denominator": 4
+                },
+                "duration": {
+                  "denominator": 4,
+                  "dots": 0
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-tie-start",
+                    "pitch": {
+                      "step": "C",
+                      "alter": 0,
+                      "octave": 5
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "voiceId": "voice-inner",
+            "events": [
+              {
+                "id": "event-inner-1",
+                "onset": {
+                  "numerator": 0,
+                  "denominator": 1
+                },
+                "duration": {
+                  "denominator": 1,
+                  "dots": 0
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-inner-1",
+                    "pitch": {
+                      "step": "E",
+                      "alter": 0,
+                      "octave": 4
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "voiceId": "voice-lower",
+            "events": [
+              {
+                "id": "event-lower-chord",
+                "onset": {
+                  "numerator": 0,
+                  "denominator": 1
+                },
+                "duration": {
+                  "denominator": 2,
+                  "dots": 0
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-lower-c",
+                    "pitch": {
+                      "step": "C",
+                      "alter": 0,
+                      "octave": 3
+                    }
+                  },
+                  {
+                    "id": "note-lower-g",
+                    "pitch": {
+                      "step": "G",
+                      "alter": 0,
+                      "octave": 3
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "event-lower-rest-1",
+                "onset": {
+                  "numerator": 1,
+                  "denominator": 2
+                },
+                "duration": {
+                  "denominator": 2,
+                  "dots": 0
+                },
+                "kind": "rest"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "measure-2",
+        "timeSignature": {
+          "beats": 4,
+          "beatType": 4
+        },
+        "keySignature": {
+          "fifths": 0
+        },
+        "voices": [
+          {
+            "voiceId": "voice-upper",
+            "events": [
+              {
+                "id": "event-tie-end",
+                "onset": {
+                  "numerator": 0,
+                  "denominator": 1
+                },
+                "duration": {
+                  "denominator": 4,
+                  "dots": 0
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-tie-end",
+                    "pitch": {
+                      "step": "C",
+                      "alter": 0,
+                      "octave": 5
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "event-next",
+                "onset": {
+                  "numerator": 1,
+                  "denominator": 4
+                },
+                "duration": {
+                  "denominator": 4,
+                  "dots": 0
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-next",
+                    "pitch": {
+                      "step": "D",
+                      "alter": 0,
+                      "octave": 5
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "event-upper-rest-2",
+                "onset": {
+                  "numerator": 1,
+                  "denominator": 2
+                },
+                "duration": {
+                  "denominator": 2,
+                  "dots": 0
+                },
+                "kind": "rest"
+              }
+            ]
+          },
+          {
+            "voiceId": "voice-inner",
+            "events": [
+              {
+                "id": "event-inner-2",
+                "onset": {
+                  "numerator": 0,
+                  "denominator": 1
+                },
+                "duration": {
+                  "denominator": 1,
+                  "dots": 0
+                },
+                "kind": "note",
+                "notes": [
+                  {
+                    "id": "note-inner-2",
+                    "pitch": {
+                      "step": "G",
+                      "alter": 0,
+                      "octave": 4
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "voiceId": "voice-lower",
+            "events": [
+              {
+                "id": "event-lower-rest-2",
+                "onset": {
+                  "numerator": 0,
+                  "denominator": 1
+                },
+                "duration": {
+                  "denominator": 1,
+                  "dots": 0
+                },
+                "kind": "rest"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "marks": [
+      {
+        "id": "mark-tie",
+        "kind": "tie",
+        "startNoteId": "note-tie-start",
+        "endNoteId": "note-tie-end"
+      },
+      {
+        "id": "mark-slur",
+        "kind": "slur",
+        "startEventId": "event-triplet-1",
+        "endEventId": "event-triplet-3"
+      },
+      {
+        "id": "mark-dynamic",
+        "kind": "dynamic",
+        "eventId": "event-chord",
+        "value": "p"
+      },
+      {
+        "id": "mark-pedal",
+        "kind": "pedal",
+        "startEventId": "event-lower-chord",
+        "endEventId": "event-lower-rest-1"
+      },
+      {
+        "id": "mark-repeat",
+        "kind": "repeat",
+        "startMeasureId": "measure-1",
+        "endMeasureId": "measure-2",
+        "times": 2
+      }
+    ]
+  }
+}

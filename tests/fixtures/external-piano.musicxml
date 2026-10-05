@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "https://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+  <work><work-title>原创交换练习</work-title></work>
+  <part-list><score-part id="Piano"><part-name>Piano</part-name></score-part></part-list>
+  <part id="Piano">
+    <measure number="1">
+      <attributes>
+        <divisions>2</divisions><key><fifths>0</fifths></key>
+        <time><beats>3</beats><beat-type>4</beat-type></time><staves>2</staves>
+        <clef number="1"><sign>G</sign><line>2</line></clef>
+        <clef number="2"><sign>F</sign><line>4</line></clef>
+      </attributes>
+      <barline location="left"><repeat direction="forward"/></barline>
+      <direction><direction-type><dynamics><mp/></dynamics></direction-type><voice>1</voice><staff>1</staff></direction>
+      <note><pitch><step>C</step><alter>1</alter><octave>5</octave></pitch><duration>3</duration><voice>1</voice><type>quarter</type><dot/><staff>1</staff><notations><slur type="start" number="1"/></notations></note>
+      <note><chord/><pitch><step>E</step><octave>5</octave></pitch><duration>3</duration><voice>1</voice><type>quarter</type><dot/><staff>1</staff></note>
+      <note><pitch><step>D</step><octave>5</octave></pitch><duration>1</duration><voice>1</voice><type>eighth</type><staff>1</staff></note>
+      <note><pitch><step>G</step><octave>5</octave></pitch><duration>2</duration><tie type="start"/><voice>1</voice><type>quarter</type><staff>1</staff><notations><tied type="start"/></notations></note>
+      <backup><duration>6</duration></backup>
+      <note><pitch><step>E</step><octave>4</octave></pitch><duration>6</duration><voice>2</voice><type>half</type><dot/><staff>1</staff></note>
+      <backup><duration>6</duration></backup>
+      <direction><direction-type><pedal type="start" line="yes"/></direction-type><voice>3</voice><staff>2</staff></direction>
+      <note><pitch><step>C</step><octave>3</octave></pitch><duration>4</duration><voice>3</voice><type>half</type><staff>2</staff></note>
+      <direction><direction-type><pedal type="stop" line="yes"/></direction-type><voice>3</voice><staff>2</staff></direction>
+      <note><rest/><duration>2</duration><voice>3</voice><type>quarter</type><staff>2</staff></note>
+    </measure>
+    <measure number="2">
+      <attributes><key><fifths>1</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time></attributes>
+      <note><pitch><step>G</step><octave>5</octave></pitch><duration>2</duration><tie type="stop"/><voice>1</voice><type>quarter</type><staff>1</staff><notations><tied type="stop"/><slur type="stop" number="1"/></notations></note>
+      <forward><duration>2</duration><voice>1</voice><staff>1</staff></forward>
+      <note><rest/><duration>4</duration><voice>1</voice><type>half</type><staff>1</staff></note>
+      <backup><duration>8</duration></backup>
+      <note><rest measure="yes"/><duration>8</duration><voice>2</voice><staff>1</staff></note>
+      <backup><duration>8</duration></backup>
+      <note><rest measure="yes"/><duration>8</duration><voice>3</voice><staff>2</staff></note>
+      <barline location="right"><repeat direction="backward" times="3"/></barline>
+    </measure>
+  </part>
+</score-partwise>

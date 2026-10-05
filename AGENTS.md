@@ -2,22 +2,26 @@
 
 ## Project Status & Architecture
 
-Notera is a desktop music notation editor. The agreed stack is Electron, Vite, React, TypeScript, and shadcn/ui, with independent score files for persistence. The desktop shell, build tooling, and isolated preload bridge are initialized.
+Notera is a desktop music notation editor. The agreed stack is Electron, Vite, React, TypeScript, and shadcn/ui, with independent score files for persistence. The desktop shell, musical core, basic piano editor, native file operations, recovery, MusicXML/MXL interchange, offline piano playback and staff PDF export are implemented.
 
-Keep the score model and editing commands independent of React and Electron. React manages the interface; Electron's main process handles filesystem operations through a narrow preload API. Start score files as versioned JSON documents. Add SQLite when library indexing requires it.
+Keep the score model and editing commands independent of React and Electron. React manages the interface; Electron's main process handles filesystem operations through a narrow preload API. Native score strings use versioned JSON. Before changing musical invariants, commands, or serialization, read `src/core/README.md`. Before changing document IPC, save/close coordination or recovery, read `src/main/README.md`. Before changing MusicXML conversion, loss reports or MXL parsing, read `src/exchange/README.md`. Before changing PDF export, read `src/main/PDF.md`. Before changing playback compilation, audio resources or transport lifecycle, read `src/playback/README.md`. Add SQLite when library indexing requires it.
 
 ## Project Structure & Module Organization
 
 Use these locations:
 
-- `src/main/`: Electron lifecycle, file access, and IPC handlers.
+- `src/main/`: Electron lifecycle, authorized document paths, atomic file replacement, recovery and IPC handlers.
 - `src/preload/`: typed APIs exposed to the renderer.
 - `src/renderer/`: React screens, hooks, and shadcn/ui components.
-- `src/core/`: reserved for score entities, editing commands, and undo/redo.
+- `src/core/`: musical schema, validation, editing transactions, undo/redo, and native JSON encoding.
+- `src/editor/`: input session, musical cursor and selection independent of React.
+- `src/notation/`: MEI projection, SVG identity mapping and offline engraving worker.
+- `src/exchange/`: independent MusicXML/MXL conversion, identity metadata and loss reporting.
+- `src/playback/`: independent performance compilation, cancellable transport and local sampled piano.
 - `src/shared/`: shared IPC definitions and types.
-- `src/assets/`: reserved for fonts, icons, and bundled resources.
-- `tests/e2e/`: Electron startup and IPC smoke tests.
-- `tests/fixtures/`: reserved for score examples and malformed files.
+- `src/assets/`: bundled musical examples and future fonts/icons.
+- `tests/e2e/`: Electron editing, offline engraving and IPC integration tests.
+- `tests/fixtures/`: hand-authored musical examples and file expectations.
 - `scripts/`: development and packaging helpers.
 
 ## Build, Test, and Development Commands
@@ -28,7 +32,7 @@ Use pnpm for dependency management and script execution. Install locked dependen
 - `pnpm run build`: compile the application for production.
 - `pnpm run lint`: run ESLint.
 - `pnpm run typecheck`: check TypeScript types.
-- `pnpm test`: run Vitest unit tests; currently exits successfully with no unit tests.
+- `pnpm test`: run Vitest unit tests, including the musical core in a Node environment.
 - `pnpm run test:e2e`: build and test the real Electron application.
 - `pnpm run package`: build an unpacked application for the current platform.
 - `pnpm run format:check`: check Prettier formatting.
@@ -36,6 +40,21 @@ Use pnpm for dependency management and script execution. Install locked dependen
 ## Coding Style & Naming Conventions
 
 Use TypeScript with strict checking and two-space indentation. Use the configured ESLint and Prettier rules. Name React components with PascalCase, hooks with `useCamelCase`, and functions and variables with camelCase. Give editing commands explicit names such as `InsertNoteCommand`. Keep score semantics separate from rendering coordinates.
+
+## Comments & Documentation
+
+- Add a header comment to each source file explaining its purpose and responsibility.
+- Document classes, functions, and methods with JSDoc or TSDoc. Explain their purpose and describe relevant inputs, outputs, side effects, and error conditions.
+- Comment core or important logic, including domain rules, algorithms, IPC validation, persistence, and undo/redo. Explain the reasoning, constraints, and edge cases rather than restating the code.
+- Update comments alongside code changes so they remain accurate.
+
+## Code Quality & Maintainability
+
+- Keep modules, classes, and functions focused on a clear responsibility. Extract meaningful helpers when logic becomes difficult to follow, and keep dependencies explicit.
+- Use descriptive names and straightforward control flow. Handle errors explicitly and replace duplicated logic or unexplained constants with named abstractions.
+- Write readable, expanded code: use one statement per line and multiline blocks for conditionals, loops, and error handling. Put statements inside braces on separate lines, including single-statement branches.
+- Split complex expressions and long argument lists across lines. Let Prettier format the code while preserving logical structure; keep code easy to scan instead of compressing it into one line.
+- Before submitting changes, check that comments, module boundaries, and formatting make the code understandable to the next contributor.
 
 ## Testing Guidelines
 

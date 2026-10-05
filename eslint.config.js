@@ -1,3 +1,4 @@
+/** Configure TypeScript, React and browser benchmark linting with explicit runtime globals. */
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -19,6 +20,10 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { globals: globals.node } },
+  {
+    files: ['scripts/notation-benchmark/browser.mjs'],
+    languageOptions: { globals: globals.browser },
+  },
   {
     files: ['src/renderer/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },

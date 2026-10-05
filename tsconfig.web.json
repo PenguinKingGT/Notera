@@ -22,6 +22,10 @@
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
     "src/core/**/*.ts",
+    "src/editor/**/*.ts",
+    "src/exchange/**/*.ts",
+    "src/notation/**/*.ts",
+    "src/playback/**/*.ts",
     "src/shared/**/*.ts",
     "tests/setup.ts",
     "tests/e2e/**/*.ts"

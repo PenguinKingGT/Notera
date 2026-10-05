@@ -1,0 +1,77 @@
+/** Exercise real offline engraving, note input and focus protection in the isolated Electron renderer. */
+import { mkdir, rm } from 'node:fs/promises'
+import { launchDesktop, stopDesktop } from './desktop'
+import { expect, test } from '@playwright/test'
+
+test('edits a piano score with local WASM and undoable musical commands', async () => {
+  const { app, userDataDir } = await launchDesktop()
+  try {
+    const page = await app.firstWindow()
+    await page.context().setOffline(true)
+    const failures: string[] = []
+    page.on('pageerror', (error) => failures.push(error.message))
+    const canvas = page.getByTestId('score-canvas')
+    await expect(canvas.locator('.notation-svg > svg')).toHaveCount(1)
+    await expect(canvas).toHaveAttribute('aria-busy', 'false')
+    await expect(page.getByTestId('event-count')).toHaveText('0 个音乐事件')
+    await canvas.focus()
+    await page.keyboard.press('c')
+    await page.keyboard.press('Shift+e')
+    await expect(page.getByTestId('selection-description')).toContainText(
+      '2 个音',
+    )
+    await page.keyboard.press('d')
+    await page.keyboard.press('r')
+    await expect(page.getByTestId('event-count')).toHaveText('3 个音乐事件')
+    await expect(canvas).toHaveAttribute('aria-busy', 'false')
+    const notes = canvas.locator('g[data-note-id]')
+    await expect(notes).toHaveCount(3)
+    await notes.first().click()
+    await page.keyboard.press('ArrowUp')
+    await expect(page.getByTestId('selection-description')).toContainText('D4')
+    await page.keyboard.press('Backspace')
+    await expect(page.getByTestId('event-count')).toHaveText('2 个音乐事件')
+    await page.getByRole('button', { name: '撤销', exact: true }).click()
+    await expect(page.getByTestId('event-count')).toHaveText('3 个音乐事件')
+    await page.getByRole('button', { name: '重做', exact: true }).click()
+    await expect(page.getByTestId('event-count')).toHaveText('2 个音乐事件')
+    const title = page.getByRole('textbox', { name: '乐谱标题' })
+    await title.fill('CDE 钢琴练习')
+    await title.press('c')
+    await expect(page.getByTestId('event-count')).toHaveText('2 个音乐事件')
+    await title.press('Enter')
+    await page.getByRole('button', { name: '新建', exact: true }).click()
+    await expect(page.getByRole('alertdialog')).toBeVisible()
+    await page.getByRole('button', { name: '取消', exact: true }).click()
+    await expect(page.getByTestId('event-count')).toHaveText('2 个音乐事件')
+    await page.getByRole('button', { name: '示例谱', exact: true }).click()
+    await page.getByRole('button', { name: '放弃并继续', exact: true }).click()
+    await expect(canvas).toHaveAttribute('aria-busy', 'false')
+    await expect(canvas.locator('g.tie')).toHaveCount(1)
+    await expect(canvas.locator('g.slur')).toHaveCount(1)
+    await canvas.locator('g[data-note-id]').first().click()
+    await mkdir('logs', { recursive: true })
+    await page.screenshot({ path: 'logs/editor-preview.png' })
+    await page.getByRole('button', { name: '新建', exact: true }).click()
+    await page.getByRole('button', { name: '放弃并继续', exact: true }).click()
+    await expect(page.getByTestId('event-count')).toHaveText('0 个音乐事件')
+    await page.getByLabel('谱表 / 声部').selectOption('voice-lower')
+    await page.getByLabel('输入八度').selectOption('2')
+    await page.getByRole('radio', { name: '8分音符', exact: true }).click()
+    await page.getByRole('button', { name: '三连音', exact: true }).click()
+    await canvas.focus()
+    await page.keyboard.press('c')
+    await page.keyboard.press('d')
+    await page.keyboard.press('e')
+    await expect(
+      page.getByText('起点 1/4 全音符', { exact: true }),
+    ).toBeVisible()
+    await expect(page.getByTestId('selection-description')).toContainText('E2')
+    await expect(canvas).toHaveAttribute('aria-busy', 'false')
+    await expect(canvas.locator('g.tuplet')).toHaveCount(1)
+    expect(failures).toEqual([])
+  } finally {
+    await stopDesktop(app)
+    await rm(userDataDir, { recursive: true, force: true })
+  }
+})

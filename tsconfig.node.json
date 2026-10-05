@@ -19,6 +19,7 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "src/main/**/*.ts",
+    "src/notation/verovio.d.ts",
     "src/preload/**/*.ts",
     "src/shared/**/*.ts"
   ]
