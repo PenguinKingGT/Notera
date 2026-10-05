@@ -247,6 +247,7 @@ test('PDF export submits one snapshot while ongoing edits retain their history a
   expect(api.exportPdf).toHaveBeenCalledWith({
     documentId: info.documentId,
     score: captured,
+    notation: 'staff',
   })
   expect(session.getSnapshot().dirty).toBe(true)
   expect(session.getSnapshot().canUndo).toBe(true)

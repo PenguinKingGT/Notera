@@ -15,6 +15,7 @@ import type {
   DocumentStartup,
   FileResult,
   OpenedDocument,
+  NotationView,
 } from '../shared/desktop-api'
 import {
   decodeXml,
@@ -57,6 +58,7 @@ const exportRequest = z.strictObject({
 const pdfRequest = z.strictObject({
   documentId: z.string().min(1),
   score: z.unknown(),
+  notation: z.enum(['staff', 'jianpu']).default('staff'),
 })
 const checkpointRequest = z.strictObject({
   documentId: z.string().min(1),
@@ -137,6 +139,7 @@ export class DocumentService {
     readonly recovery: RecoveryStore,
     readonly pdf?: (
       score: Score,
+      notation: NotationView,
     ) => Promise<{ bytes: Uint8Array; pageCount: number }>,
   ) {}
 
@@ -319,7 +322,9 @@ export class DocumentService {
       const score = parseScore(request.score)
       const safeTitle =
         score.title.replace(/[<>:"/\\|?*]/g, '_').slice(0, 120) || '乐谱'
-      const chosen = await this.dialogs.exportPdf(`${safeTitle}.pdf`)
+      const chosen = await this.dialogs.exportPdf(
+        `${safeTitle}${request.notation === 'jianpu' ? '-简谱' : ''}.pdf`,
+      )
       if (!chosen) {
         return { status: 'cancelled' }
       }
@@ -330,7 +335,7 @@ export class DocumentService {
       ) {
         throw new PdfExportError('请选择 .pdf 文件，导出不能覆盖当前原生乐谱。')
       }
-      const result = await this.pdf(score)
+      const result = await this.pdf(score, request.notation)
       await atomicWrite(path, result.bytes)
       return {
         status: 'success',

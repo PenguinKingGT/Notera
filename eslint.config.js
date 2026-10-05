@@ -41,7 +41,7 @@ export default tseslint.config(
     rules: {
       'react-refresh/only-export-components': [
         'error',
-        { allowExportNames: ['buttonVariants'] },
+        { allowExportNames: ['buttonVariants', 'toggleVariants'] },
       ],
     },
   },

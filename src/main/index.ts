@@ -8,6 +8,7 @@ import { IPC_CHANNELS } from '../shared/desktop-api'
 import type { AppInfo } from '../shared/desktop-api'
 import { DocumentService } from './document-service'
 import { renderStaffPdf } from './staff-pdf'
+import { renderJianpuPdf } from './jianpu-pdf'
 import { RecoveryStore } from './recovery-store'
 import { RecognitionSettingsStore } from './recognition/settings'
 import { RecognitionService, recognitionResult } from './recognition/service'
@@ -201,7 +202,7 @@ async function createWindow(): Promise<void> {
       /** Select a PDF destination owned exclusively by main. */
       exportPdf: async (defaultPath) => {
         const result = await dialog.showSaveDialog(window, {
-          title: '导出五线谱 PDF',
+          title: '导出乐谱 PDF',
           defaultPath,
           filters: [{ name: 'PDF 乐谱', extensions: ['pdf'] }],
           properties: ['createDirectory', 'showOverwriteConfirmation'],
@@ -222,7 +223,8 @@ async function createWindow(): Promise<void> {
     new RecoveryStore(
       join(app.getPath('userData'), 'recovery', 'current.json'),
     ),
-    renderStaffPdf,
+    (score, notation) =>
+      notation === 'jianpu' ? renderJianpuPdf(score) : renderStaffPdf(score),
   )
   services.set(window.id, service)
   const recognition = new RecognitionService(

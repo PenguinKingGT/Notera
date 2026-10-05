@@ -11,7 +11,7 @@ Use `src/core/index.ts` as the public interface. This module owns musical conten
 - `WrittenPitch` stores step, absolute alteration and octave. Key signature does not silently modify it; C sharp and D flat remain distinct spellings even when `soundingPitch()` agrees.
 - Chord events have stable IDs and each contained note has its own ID. Ties reference notes, slurs reference events. Identity is unique across entity kinds within one document.
 
-Partial measures and gaps are valid during entry. Same-voice overlap, out-of-order events, measure overflow, duplicate chord pitches and dangling references are rejected. Ties currently require adjacent same-spelling notes in one voice; slurs stay within one voice/staff. Repeat ranges must be disjoint. Pickup-measure lengths, cross-staff notation, repeat endings and tonal interpretation for Jianpu remain future work.
+Partial measures and gaps are valid during entry. Same-voice overlap, out-of-order events, measure overflow, duplicate chord pitches and dangling references are rejected. Ties currently require adjacent same-spelling notes in one voice; slurs stay within one voice/staff. Repeat ranges must be disjoint. Pickup-measure lengths, cross-staff notation, repeat endings and explicit major/minor mode remain future work. Jianpu currently interprets fifths using the corresponding major tonic in its independent view adapter.
 
 ## Edit and serialize
 

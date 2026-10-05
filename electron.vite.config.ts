@@ -10,6 +10,9 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: fileURLToPath(new URL('./src/main/index.ts', import.meta.url)),
+          'jianpu-pdf-worker': fileURLToPath(
+            new URL('./src/main/jianpu-pdf-worker.ts', import.meta.url),
+          ),
           'pdf-worker': fileURLToPath(
             new URL('./src/main/pdf-worker.ts', import.meta.url),
           ),

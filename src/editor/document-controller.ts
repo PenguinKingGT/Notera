@@ -6,6 +6,7 @@ import type {
   DocumentInfo,
   DocumentStartup,
   FileResult,
+  NotationView,
 } from '../shared/desktop-api'
 import { EditorSession } from './session'
 
@@ -301,9 +302,9 @@ export class DocumentController {
   }
 
   /** Export the captured music as a print document, preserving native save and undo state. */
-  async exportPdf(): Promise<void> {
+  async exportPdf(notation: NotationView = 'staff'): Promise<void> {
     return this.exportSnapshot((documentId, score) =>
-      this.api.exportPdf({ documentId, score }),
+      this.api.exportPdf({ documentId, score, notation }),
     )
   }
 

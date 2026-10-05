@@ -34,6 +34,12 @@ export function ExchangeActions({
             <FileDown />
             导出五线谱 PDF
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => void controller.exportPdf('jianpu')}
+          >
+            <FileDown />
+            导出简谱 PDF
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>MusicXML</DropdownMenuLabel>

@@ -5,6 +5,9 @@ import { FilePlus2, Music2, FolderOpen, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EditorToolbar } from '@/components/editor/EditorToolbar'
 import { EditorInspector } from '@/components/editor/EditorInspector'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { JianpuCanvas } from '@/components/editor/JianpuCanvas'
+import { useJianpu } from '@/hooks/useJianpu'
 import { ScoreCanvas } from '@/components/editor/ScoreCanvas'
 import { useEngraving } from '@/hooks/useEngraving'
 import { DocumentController } from '../editor/document-controller'
@@ -28,7 +31,10 @@ export function App() {
       }),
   )
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot)
+  const [notation, setNotation] = useState<'staff' | 'jianpu'>('staff')
   const engraving = useEngraving(state.score)
+  const jianpu = useJianpu(state.score, notation === 'jianpu')
+  const activeEngraving = notation === 'staff' ? engraving : jianpu
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [infoError, setInfoError] = useState<string | null>(null)
   const [titleDraft, setTitleDraft] = useState<{
@@ -284,7 +290,13 @@ export function App() {
           </Button>
         </div>
       </header>
-      <div inert={documentState.editingLocked || !documentState.ready}>
+      <div
+        inert={
+          documentState.editingLocked ||
+          !documentState.ready ||
+          notation === 'jianpu'
+        }
+      >
         <EditorToolbar session={session} state={state} />
       </div>
       <PlaybackToolbar
@@ -305,15 +317,34 @@ export function App() {
           key={documentState.document?.documentId ?? 'startup'}
           session={session}
           state={state}
+          readOnly={notation === 'jianpu'}
         />
-        <section className="score-workspace" aria-label="五线谱工作空间">
+        <section
+          className="score-workspace"
+          aria-label={notation === 'staff' ? '五线谱工作空间' : '简谱工作空间'}
+        >
           <div className="workspace-bar">
-            <span>五线谱</span>
+            <ToggleGroup
+              type="single"
+              size="sm"
+              variant="outline"
+              value={notation}
+              aria-label="记谱视图"
+              onValueChange={(value) => {
+                if (value === 'staff' || value === 'jianpu') {
+                  setNotation(value)
+                }
+              }}
+            >
+              <ToggleGroupItem value="staff">五线谱</ToggleGroupItem>
+              <ToggleGroupItem value="jianpu">简谱</ToggleGroupItem>
+            </ToggleGroup>
             <span aria-live="polite">
-              {engraving.pending
+              {activeEngraving.pending
                 ? '正在排版…'
-                : engraving.response && 'pages' in engraving.response
-                  ? `${engraving.response.pages.length} 页 · 自动排版`
+                : activeEngraving.response &&
+                    'pages' in activeEngraving.response
+                  ? `${activeEngraving.response.pages.length} 页 · 自动排版`
                   : '排版待重试'}
             </span>
           </div>
@@ -327,21 +358,33 @@ export function App() {
               {state.error}
             </div>
           ) : null}
-          {engraving.response && 'error' in engraving.response ? (
+          {activeEngraving.response && 'error' in activeEngraving.response ? (
             <div className="editor-error" role="alert">
-              {engraving.response.error}
-              <Button size="sm" variant="outline" onClick={engraving.retry}>
+              {activeEngraving.response.error}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={activeEngraving.retry}
+              >
                 重试排版
               </Button>
             </div>
           ) : null}
-          <ScoreCanvas
-            session={session}
-            playback={playback}
-            snapshot={state}
-            response={engraving.response}
-            pending={engraving.pending}
-          />
+          {notation === 'staff' ? (
+            <ScoreCanvas
+              session={session}
+              playback={playback}
+              snapshot={state}
+              response={engraving.response}
+              pending={engraving.pending}
+            />
+          ) : (
+            <JianpuCanvas
+              score={state.score}
+              response={jianpu.response}
+              pending={jianpu.pending}
+            />
+          )}
         </section>
       </div>
       <footer className="editor-status">

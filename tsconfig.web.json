@@ -27,6 +27,7 @@
     "src/notation/**/*.ts",
     "src/playback/**/*.ts",
     "src/recognition/**/*.ts",
+    "src/jianpu/**/*.ts",
     "src/shared/**/*.ts",
     "tests/setup.ts",
     "tests/e2e/**/*.ts"

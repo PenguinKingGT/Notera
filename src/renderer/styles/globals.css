@@ -519,3 +519,15 @@ kbd {
   overflow-wrap: anywhere;
   font-size: 13px;
 }
+
+/* Numbered notation uses the same paper surface while retaining its own page dimensions. */
+.jianpu-help {
+  max-width: 850px;
+  margin: 0 auto 18px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.jianpu-svg {
+  padding: 16px 24px 24px;
+}

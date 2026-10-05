@@ -2,6 +2,9 @@
 import type { Score } from '../core'
 import type { RecognitionApi } from './recognition-api'
 
+/** Notation choice affects export projection only; native musical content is shared. */
+export type NotationView = 'staff' | 'jianpu'
+
 /** Desktop application metadata. */
 export interface AppInfo {
   name: string
@@ -50,6 +53,7 @@ export interface DesktopApi {
   exportPdf: (request: {
     documentId: string
     score: Score
+    notation?: NotationView
   }) => Promise<FileResult<{ fileName: string; pageCount: number }>>
   saveDocument: (request: {
     documentId: string

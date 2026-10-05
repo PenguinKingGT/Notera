@@ -23,9 +23,9 @@ MusicXML import/export uses dedicated native pickers through the same trusted IP
 
 Export requests carry a document token, validated score snapshot and compressed/plain flag. The chosen output path stays in main; export cannot overwrite the active native target. Atomic writing accepts text or bytes. Export leaves native dirty state, path, disk baseline and recovery unchanged. Conversion policy and resource limits are defined in `src/exchange/README.md`.
 
-## Staff PDF export
+## Score PDF export
 
-PDF export captures a validated music snapshot, selects a separate `.pdf` target, engraves in an isolated worker and atomically writes a complete printed document. It preserves native save state and recovery. Before changing PDF layout, workers, printing or IPC, read `PDF.md`.
+PDF export captures a validated music snapshot, selects a separate `.pdf` target, selects staff or numbered notation, engraves in an isolated worker and atomically writes a complete printed document. It preserves native save state and recovery. Before changing PDF layout, workers, printing or IPC, read `PDF.md`.
 
 ## Recovery and close
 

@@ -479,3 +479,31 @@ test('PDF rendering and write failures retain existing outputs and permit subseq
     false,
   )
 })
+
+test('numbered PDF exports route a validated notation choice and reject unknown projections before the picker', async () => {
+  const render = vi.fn(async () => ({
+    bytes: new TextEncoder().encode('%PDF-numbered'),
+    pageCount: 1,
+  }))
+  const picker = vi.fn(async () => join(directory, 'numbered.pdf'))
+  const service = new DocumentService(
+    { open: async () => null, save: async () => null, exportPdf: picker },
+    new RecoveryStore(join(directory, 'recovery.json')),
+    render,
+  )
+  const score = createPianoScore({ id: 'numbered', title: '编号谱' })
+  const document = value(await service.initialize(score)).document
+  const request = { documentId: document.documentId, score }
+  expect(
+    await service.exportPdf({ ...request, notation: 'untrusted' }),
+  ).toMatchObject({ status: 'error' })
+  expect(picker).not.toHaveBeenCalled()
+  expect(
+    await service.exportPdf({ ...request, notation: 'jianpu' }),
+  ).toMatchObject({ status: 'success' })
+  expect(picker).toHaveBeenCalledWith('编号谱-简谱.pdf')
+  expect(render).toHaveBeenCalledWith(score, 'jianpu')
+  expect(await readFile(join(directory, 'numbered.pdf'), 'utf8')).toBe(
+    '%PDF-numbered',
+  )
+})

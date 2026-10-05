@@ -9,9 +9,11 @@ import type { EditorSession, EditorSnapshot } from '../../../editor/session'
 export function EditorInspector({
   session,
   state,
+  readOnly = false,
 }: {
   session: EditorSession
   state: EditorSnapshot
+  readOnly?: boolean
 }) {
   const measureIndex = state.score.measures.findIndex(
     (measure) => measure.id === state.cursor.measureId,
@@ -24,7 +26,11 @@ export function EditorInspector({
       : undefined
 
   return (
-    <aside className="editor-inspector" aria-label="输入与选择属性">
+    <aside
+      className="editor-inspector"
+      aria-label="输入与选择属性"
+      inert={readOnly}
+    >
       <h2>钢琴谱</h2>
       <label htmlFor="voice">谱表 / 声部</label>
       <select
