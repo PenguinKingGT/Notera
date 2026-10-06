@@ -56,7 +56,7 @@ export function parseRecognitionScore(text: string): Score {
 }
 
 /** Rename anchored marks along with their musical entities so separate pages cannot collide. */
-function remapMark(
+export function remapMark(
   mark: ScoreMark,
   identity: (id: string) => string,
 ): ScoreMark {

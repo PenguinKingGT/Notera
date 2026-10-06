@@ -9,6 +9,8 @@ import type {
 } from '../shared/desktop-api'
 import { EditorSession } from './session'
 import { DocumentController } from './document-controller'
+import { combineRecognitionScores } from '../recognition/score-result'
+import type { RecognitionImport } from '../shared/recognition-api'
 
 const info: DocumentInfo = {
   documentId: 'document',
@@ -286,5 +288,110 @@ test('recognition import preserves current music on cancel or failed creation an
   expect(session.getSnapshot().score).toEqual(recognized)
   expect(await controller.save()).toBe(true)
   expect(session.getSnapshot().dirty).toBe(false)
+  controller.stop()
+})
+
+/** Build actual main-style provenance for one partial and one complete two-source result. */
+function recognizedResult(complete: boolean): RecognitionImport {
+  const parts = [createPianoScore({ id: 'first' })]
+  if (complete) {
+    parts.push(createPianoScore({ id: 'second' }))
+  }
+  const score = combineRecognitionScores(parts, 'recognized')
+  return {
+    taskId: 'task',
+    sourceOrder: ['first', 'second'],
+    score,
+    fragments: score.measures.map((measure, index) => ({
+      sourceId: index ? 'second' : 'first',
+      measureIds: [measure.id],
+    })),
+  }
+}
+
+test('binds only completed imports, keeps native save capability and makes retry merge undoable', async () => {
+  const { controller, session, api } = setup()
+  await controller.start()
+  const partial = recognizedResult(false)
+  expect(controller.importRecognition(partial.score, partial)).toBe(true)
+  expect(controller.recognitionMergeTarget('task')).toBeNull()
+  await vi.waitFor(() => expect(controller.getSnapshot().busy).toBe(false))
+  session.inputPitch('C')
+  vi.mocked(api.saveDocument).mockResolvedValueOnce(
+    success({
+      ...info,
+      documentId: 'replacement',
+      fileName: 'saved.notera',
+      filePath: '/chosen/saved.notera',
+    }),
+  )
+  expect(await controller.save()).toBe(true)
+  const saved = session.getSnapshot().score
+  const document = controller.getSnapshot().document
+  const target = controller.recognitionMergeTarget('task')!
+  expect(
+    controller.mergeRecognition(recognizedResult(true), 'ordered', target),
+  ).toBeNull()
+  expect(session.getSnapshot().score.measures[0]).toEqual(saved.measures[0])
+  expect(session.getSnapshot().score.measures).toHaveLength(2)
+  expect(session.getSnapshot().dirty).toBe(true)
+  expect(controller.getSnapshot().document).toBe(document)
+  expect(api.createDocument).toHaveBeenCalledTimes(1)
+  session.undo()
+  expect(session.getSnapshot().score).toEqual(saved)
+  expect(session.getSnapshot().dirty).toBe(false)
+  session.redo()
+  expect(
+    controller.mergeRecognition(
+      recognizedResult(true),
+      'ordered',
+      controller.recognitionMergeTarget('task')!,
+    ),
+  ).toContain('没有可重复')
+  controller.stop()
+})
+
+test('rejects stale merge snapshots and retires associations after reopening a document', async () => {
+  const { controller, session, api } = setup()
+  await controller.start()
+  const partial = recognizedResult(false)
+  controller.importRecognition(partial.score, partial)
+  await vi.waitFor(() => expect(controller.getSnapshot().busy).toBe(false))
+  const target = controller.recognitionMergeTarget('task')!
+  session.setTitle('保留新的编辑')
+  const edited = session.getSnapshot().score
+  expect(
+    controller.mergeRecognition(recognizedResult(true), 'ordered', target),
+  ).toContain('已变化')
+  expect(session.getSnapshot().score).toBe(edited)
+  vi.mocked(api.openDocument).mockResolvedValueOnce(
+    success({ document: { ...info, documentId: 'opened' }, score: edited }),
+  )
+  controller.request('open')
+  controller.discard()
+  await vi.waitFor(() => expect(controller.getSnapshot().busy).toBe(false))
+  expect(controller.recognitionMergeTarget('task')).toBeNull()
+  expect(
+    controller.mergeRecognition(recognizedResult(true), 'append', target),
+  ).toContain('已变化')
+  controller.stop()
+})
+
+test('cancelled or failed recognition replacement never associates the current edited document', async () => {
+  const { controller, session, api } = setup()
+  await controller.start()
+  session.inputPitch('C')
+  const partial = recognizedResult(false)
+  controller.importRecognition(partial.score, partial)
+  controller.cancel()
+  expect(controller.recognitionMergeTarget('task')).toBeNull()
+  controller.importRecognition(partial.score, partial)
+  vi.mocked(api.createDocument).mockResolvedValueOnce({
+    status: 'error',
+    message: 'failed',
+  })
+  controller.discard()
+  await vi.waitFor(() => expect(controller.getSnapshot().busy).toBe(false))
+  expect(controller.recognitionMergeTarget('task')).toBeNull()
   controller.stop()
 })

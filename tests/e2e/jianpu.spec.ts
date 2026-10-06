@@ -13,27 +13,29 @@ test('shares edits with a read-only piano Jianpu view and exports independent A4
     await page.context().setOffline(true)
     const canvas = page.getByTestId('score-canvas')
     await expect(canvas).toHaveAttribute('aria-busy', 'false')
-    await page.getByRole('button', { name: '4分音符', exact: true }).click()
+    await page.getByRole('radio', { name: '4分音符', exact: true }).click()
     await canvas.focus()
     await page.keyboard.press('c')
     await expect(page.getByTestId('event-count')).toHaveText('1 个音乐事件')
-    await page.getByRole('button', { name: '简谱', exact: true }).click()
+    await page.getByRole('radio', { name: '简谱', exact: true }).click()
     const jianpu = page.getByTestId('jianpu-canvas')
     await expect(jianpu).toHaveAttribute('aria-busy', 'false')
     await expect(
       jianpu.locator('[data-first="true"] [data-degree="1"]'),
     ).toHaveCount(1)
-    await expect(jianpu.getByText('右手 · 1', { exact: true })).toBeVisible()
-    await expect(jianpu.getByText('左手 · 1', { exact: true })).toBeVisible()
+    await expect(jianpu.getByText('右手', { exact: true })).toBeVisible()
+    await expect(jianpu.getByText('左手', { exact: true })).toBeVisible()
+    await expect(jianpu.locator('[data-context="true"]')).toHaveCount(1)
+    await expect(jianpu.locator('[data-piano-bracket="true"]')).toHaveCount(1)
     await jianpu.focus()
     await page.keyboard.press('g')
     await expect(page.getByTestId('event-count')).toHaveText('1 个音乐事件')
 
-    await page.getByRole('button', { name: '五线谱', exact: true }).click()
+    await page.getByRole('radio', { name: '五线谱', exact: true }).click()
     await expect(canvas).toHaveAttribute('aria-busy', 'false')
     await canvas.locator('g.note').first().click()
     await page.keyboard.press('ArrowUp')
-    await page.getByRole('button', { name: '简谱', exact: true }).click()
+    await page.getByRole('radio', { name: '简谱', exact: true }).click()
     await expect(jianpu).toHaveAttribute('aria-busy', 'false')
     await expect(
       jianpu.locator('[data-first="true"] [data-degree="2"]'),
@@ -59,7 +61,12 @@ test('shares edits with a read-only piano Jianpu view and exports independent A4
       ),
     ).toHaveCount(2)
     await expect(jianpu.locator('[data-tuplet="3"]')).toHaveCount(1)
-    await expect(jianpu.getByText('右手 · 2', { exact: true })).toBeVisible()
+    await expect(jianpu.getByText('右手 2', { exact: true })).toBeVisible()
+    for (const kind of ['tie', 'slur', 'dynamic', 'pedal']) {
+      await expect(
+        jianpu.locator(`[data-mark-kind="${kind}"]`).first(),
+      ).toBeVisible()
+    }
     const aligned = await jianpu.evaluate((host) => {
       return ['event-chord', 'event-inner-1', 'event-lower-chord'].map((id) =>
         host
@@ -152,6 +159,7 @@ test('shares edits with a read-only piano Jianpu view and exports independent A4
     const longBytes = await readFile(longOutput)
     expect((await PDFDocument.load(longBytes)).getPageCount()).toBe(pages)
     await writeFile('logs/jianpu-export-multiple.pdf', longBytes)
+    await page.screenshot({ path: 'logs/jianpu-multiple-preview.png' })
     await expect(page.getByTestId('document-status')).toHaveText(
       'jianpu-long.notera',
     )

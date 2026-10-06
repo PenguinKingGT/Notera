@@ -31,8 +31,14 @@ export function RecognitionPanel({
 }) {
   const [controller] = useState(
     () =>
-      new RecognitionController(window.notera.recognition, (score) =>
-        documents.importRecognition(score),
+      new RecognitionController(
+        window.notera.recognition,
+        (score, origin) => documents.importRecognition(score, origin),
+        {
+          capture: (taskId) => documents.recognitionMergeTarget(taskId),
+          apply: (result, mode, target) =>
+            documents.mergeRecognition(result, mode, target),
+        },
       ),
   )
   const state = useSyncExternalStore(
@@ -192,8 +198,31 @@ export function RecognitionPanel({
               <>
                 <p className="text-sm text-muted-foreground">
                   将按当前顺序导入 {successes}{' '}
-                  个成功页，跳过未成功页。通过校验不代表识谱正确；页间小节与跨页连线需手工检查。重试结果不会自动合并已编辑的乐谱。
+                  个成功页，跳过未成功页。通过校验不代表识谱正确；页间小节与跨页连线需手工检查。
                 </p>
+                {state.task &&
+                documents.recognitionMergeTarget(state.task.id) ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">
+                      已导入此任务。补入只加入尚未导入的成功页，保留当前编辑；顺序冲突时可明确选择追加到末尾。补入可撤销，来源关联仅在当前应用会话中保留。
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        disabled={Boolean(running) || disabled}
+                        onClick={() => void controller.mergeScore('ordered')}
+                      >
+                        按来源顺序补入当前乐谱
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={Boolean(running) || disabled}
+                        onClick={() => void controller.mergeScore('append')}
+                      >
+                        追加补识别页到末尾
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 <Button
                   disabled={Boolean(running) || disabled}
                   onClick={() => {

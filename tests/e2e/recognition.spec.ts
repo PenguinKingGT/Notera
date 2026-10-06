@@ -166,13 +166,7 @@ test('configures AI, retains partial results, retries a page and imports editabl
       '通过乐谱校验',
     )
     await expect(sources.getByRole('listitem').last()).toContainText('HTTP 503')
-    await panel
-      .getByRole('button', { name: '重试 first.png', exact: true })
-      .click()
-    await expect(sources.getByRole('listitem').last()).toContainText(
-      '通过乐谱校验',
-    )
-    expect(calls).toBe(3)
+    expect(calls).toBe(2)
     expect(JSON.stringify(bodies[0])).toContain('image_url')
     expect(bodies[0].thinking).toEqual({ type: 'disabled' })
     const publicSettings = await page.evaluate(() =>
@@ -194,13 +188,43 @@ test('configures AI, retains partial results, retries a page and imports editabl
       .getByRole('button', { name: '导入成功页为新乐谱', exact: true })
       .click()
     await page.getByRole('button', { name: '放弃并继续', exact: true }).click()
-    await expect(page.getByTestId('event-count')).toHaveText('2 个音乐事件')
-    await expect(canvas.locator('g[data-note-id]')).toHaveCount(2)
-    await canvas.locator('g[data-note-id]').first().click()
+    await expect(page.getByTestId('event-count')).toHaveText('1 个音乐事件')
+    // The previous document also has one note; its SVG stays visible during engraving.
+    // Wait for the imported score before clicking a painted notehead, not the group's blank area.
+    await expect(canvas).toHaveAttribute('aria-busy', 'false')
+    await expect(canvas.locator('g[data-note-id]')).toHaveCount(1)
+    await canvas.locator('g[data-note-id] .notehead use').first().click()
     await expect(page.getByTestId('selection-description')).toContainText('C4')
     await page.keyboard.press('ArrowUp')
     await expect(page.getByTestId('selection-description')).toContainText('D4')
+    // Retry after accepting and editing a partial import; merge must preserve the edited D4.
+    await page.getByRole('button', { name: 'AI 识谱', exact: true }).click()
+    await panel
+      .getByRole('button', { name: '重试 first.png', exact: true })
+      .click()
+    await expect(sources.getByRole('listitem').last()).toContainText(
+      '通过乐谱校验',
+    )
+    expect(calls).toBe(3)
+    await panel
+      .getByRole('button', { name: '按来源顺序补入当前乐谱', exact: true })
+      .click()
+    await expect(panel.getByRole('status')).toContainText('已有编辑保留')
+    await expect(page.getByTestId('event-count')).toHaveText('2 个音乐事件')
+    await panel
+      .getByRole('button', { name: '按来源顺序补入当前乐谱', exact: true })
+      .click()
+    await expect(panel.getByText(/没有可重复加入的页/)).toBeVisible()
+    await page.screenshot({ path: 'logs/recognition-merge-preview.png' })
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('selection-description')).toContainText('D4')
     await page.getByRole('button', { name: '撤销', exact: true }).click()
+    await expect(page.getByTestId('event-count')).toHaveText('1 个音乐事件')
+    await expect(canvas).toHaveAttribute('aria-busy', 'false')
+    await canvas.locator('g[data-note-id] .notehead use').first().click()
+    await expect(page.getByTestId('selection-description')).toContainText('D4')
+    await page.getByRole('button', { name: '重做', exact: true }).click()
+    await expect(page.getByTestId('event-count')).toHaveText('2 个音乐事件')
     const saved = join(userDataDir, 'recognized.notera')
     await app.evaluate(({ dialog }, filePath) => {
       dialog.showSaveDialog = async () => ({ canceled: false, filePath })
@@ -211,6 +235,10 @@ test('configures AI, retains partial results, retries a page and imports editabl
     )
     const music = deserializeScore(await readFile(saved, 'utf8'))
     expect(music.measures).toHaveLength(2)
+    const editedEvent = music.measures[0].voices[0].events[0]
+    expect(editedEvent.kind === 'note' && editedEvent.notes[0].pitch.step).toBe(
+      'D',
+    )
     expect(JSON.stringify(music)).not.toContain(dummyKey)
     expect(await readFile(selected[0])).toEqual(png)
     // Reuse the same real protocol boundary for Claude PDF and Responses image inputs.

@@ -24,6 +24,6 @@ Conventions were checked against the maintainer's [jianpu-ly documentation](http
 
 pnpm test covers key-relative pitches, registers, dots, tuplets, voices, dense-bar continuation, marks and pagination. Worker lifecycle tests cover obsolete replies and retry cleanup.
 
-The desktop test tests/e2e/jianpu.spec.ts covers editing synchronization, read-only behavior, real offline PDFs and native-state preservation. Desktop checks are pending in the restricted session: Electron aborts before reaching the application.
+The desktop test tests/e2e/jianpu.spec.ts covers editing synchronization, read-only behavior, real offline PDFs and native-state preservation. On 2026-10-06, production and unsigned packaged tests passed in the user’s normal macOS terminal, together with the staff PDF regression. Single/multiple-page PDFs were independently parsed as A4, and the user confirmed visual review. The agent’s restricted launch context still cannot start Electron; this does not invalidate the normal-terminal results.
 
-Review SVG: logs/jianpu/core.svg. Complex engraving needs visual inspection and real repertoire tests. Explicit mode selection, custom register references, manual spacing and Jianpu editing are not provided.
+Review SVG: logs/jianpu/core.svg. The core fixture and pagination examples passed visual acceptance; broader repertoire and complex engraving still need further review. Explicit mode selection, custom register references, manual spacing and Jianpu editing are not provided.

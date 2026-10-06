@@ -46,6 +46,17 @@ export interface RecognitionTask {
   sources: RecognitionSource[]
 }
 
+/** Main-authored provenance links source capabilities to generated measure identities, without original files. */
+export interface RecognitionImport {
+  readonly taskId: string
+  readonly sourceOrder: readonly string[]
+  readonly fragments: readonly {
+    sourceId: string
+    measureIds: readonly string[]
+  }[]
+  readonly score: Score
+}
+
 /** Fixed operations for one window-owned recognition service. */
 export interface RecognitionApi {
   getSettings: () => Promise<FileResult<RecognitionSettings>>
@@ -65,7 +76,7 @@ export interface RecognitionApi {
   result: (input: {
     taskId: string
     sourceIds: string[]
-  }) => Promise<FileResult<Score>>
+  }) => Promise<FileResult<RecognitionImport>>
 }
 
 export const RECOGNITION_CHANNELS = {

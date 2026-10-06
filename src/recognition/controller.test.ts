@@ -44,6 +44,7 @@ const task: RecognitionTask = {
 
 /** Use explicit successful fake outcomes while leaving controller concurrency and state publication real. */
 function setup(accept = vi.fn().mockReturnValue(true)) {
+  const recognized = createPianoScore({ id: 'recognized', measureCount: 2 })
   const api: RecognitionApi = {
     getSettings: vi
       .fn()
@@ -71,7 +72,15 @@ function setup(accept = vi.fn().mockReturnValue(true)) {
     cancel: vi.fn().mockResolvedValue({ status: 'success', value: task }),
     result: vi.fn().mockResolvedValue({
       status: 'success',
-      value: createPianoScore({ id: 'recognized' }),
+      value: {
+        taskId: task.id,
+        sourceOrder: task.sources.map((source) => source.id),
+        fragments: task.sources.map((source, index) => ({
+          sourceId: source.id,
+          measureIds: [recognized.measures[index].id],
+        })),
+        score: recognized,
+      },
     }),
   }
   return { api, accept, controller: new RecognitionController(api, accept) }
@@ -126,4 +135,43 @@ test('retains successful task metadata when document replacement is blocked or c
   vi.mocked(api.result).mockResolvedValue({ status: 'cancelled' })
   expect(await controller.importScore()).toBe(false)
   expect(controller.getSnapshot().task).toBe(before)
+})
+
+test('captures a merge target before awaiting results and reports a rejected stale target without replacing documents', async () => {
+  const { api, accept } = setup()
+  const target = {
+    documentId: 'document',
+    score: createPianoScore({ id: 'edited' }),
+  }
+  const capture = vi.fn().mockReturnValue(target)
+  const apply = vi.fn().mockReturnValue('文档已变化，请重新补入。')
+  const controller = new RecognitionController(api, accept, { capture, apply })
+  await controller.open()
+  await controller.run()
+  let complete!: (value: Awaited<ReturnType<RecognitionApi['result']>>) => void
+  vi.mocked(api.result).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        complete = resolve
+      }),
+  )
+  const merging = controller.mergeScore()
+  expect(capture).toHaveBeenCalledWith(task.id)
+  expect(controller.getSnapshot().busy).toBe(true)
+  controller.move('second', -1)
+  const score = createPianoScore({ id: 'retry' })
+  const result = {
+    taskId: task.id,
+    sourceOrder: ['first', 'second'],
+    fragments: [],
+    score,
+  }
+  complete({ status: 'success', value: result })
+  expect(await merging).toBe(false)
+  expect(apply).toHaveBeenCalledWith(result, 'ordered', target)
+  expect(accept).not.toHaveBeenCalled()
+  expect(controller.getSnapshot().error).toContain('文档已变化')
+  capture.mockReturnValue(null)
+  expect(await controller.mergeScore('append')).toBe(false)
+  expect(api.result).toHaveBeenCalledTimes(1)
 })

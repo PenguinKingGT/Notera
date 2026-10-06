@@ -6,6 +6,7 @@ import type { FileResult } from '../../shared/desktop-api'
 import type {
   RecognitionTask,
   RecognitionSource,
+  RecognitionImport,
 } from '../../shared/recognition-api'
 import { RecognitionError } from '../../recognition/errors'
 import { combineRecognitionScores } from '../../recognition/score-result'
@@ -203,14 +204,27 @@ export class RecognitionService {
 
   /** Build a fresh ordinary document from successful pages, preserving explicit user order and partial results. */
   result(input: unknown): Score {
+    return this.resultWithSources(input).score
+  }
+
+  /** Attach main-owned source provenance to the exact generated snapshot, skipping unsuccessful sources. */
+  resultWithSources(input: unknown): RecognitionImport {
     const { task, sourceIds } = this.selected(input)
     if (task.running) {
       throw new RecognitionError('请先等待或取消识谱任务。')
     }
-    const scores = sourceIds
-      .filter((id) => this.#scores.has(id))
-      .map((id) => this.#scores.get(id)!)
-    return combineRecognitionScores(scores, randomUUID())
+    const successful = sourceIds.filter((id) => this.#scores.has(id))
+    const scores = successful.map((id) => this.#scores.get(id)!)
+    const score = combineRecognitionScores(scores, randomUUID())
+    let offset = 0
+    const fragments = successful.map((sourceId, index) => {
+      const measureIds = score.measures
+        .slice(offset, offset + scores[index].measures.length)
+        .map((measure) => measure.id)
+      offset += measureIds.length
+      return { sourceId, measureIds }
+    })
+    return { taskId: task.id, sourceOrder: sourceIds, fragments, score }
   }
 
   /** Cancel owned network work and release source bytes when the window is destroyed. */

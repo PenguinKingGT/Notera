@@ -177,6 +177,15 @@ export class EditorSession {
     )
   }
 
+  /** Apply a caller-planned insertion as one validated undoable edit, retaining cursor and selection identities. */
+  insertMeasures(command: Extract<ScoreCommand, { kind: 'batch' }>): boolean {
+    return this.execute(
+      command,
+      {},
+      '补入来源页会破坏已有音乐引用，当前乐谱已保留。可选择追加到末尾。',
+    )
+  }
+
   /** Reset a document after the UI has confirmed any unsaved changes. */
   reset(score?: Score, saved = false): void {
     this.#needsSave = Boolean(score) && !saved

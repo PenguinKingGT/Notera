@@ -87,7 +87,7 @@ function registerDocumentHandlers(): void {
     [RECOGNITION_CHANNELS.result]: (
       service: RecognitionService,
       input: unknown,
-    ) => recognitionResult(async () => service.result(input)),
+    ) => recognitionResult(async () => service.resultWithSources(input)),
   }
   for (const [channel, handler] of Object.entries(recognitionHandlers)) {
     ipcMain.handle(channel, (event, input: unknown) => {

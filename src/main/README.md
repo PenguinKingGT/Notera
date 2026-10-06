@@ -40,3 +40,7 @@ Native close and Quit request a renderer decision. Save-and-continue proceeds on
 Unit tests use real temporary files and injected picker outcomes. Desktop tests exercise real IPC, disk writes, cancellation, native Quit and crash/relaunch, while replacing native picker results in the main process. They do not automate the OS dialog widgets themselves. The test-owned child process and isolated profile are explicitly cleaned up.
 
 The native dialog and lifecycle APIs follow the official [Electron dialog](https://www.electronjs.org/docs/latest/api/dialog), [BrowserWindow](https://www.electronjs.org/docs/latest/api/browser-window) and [app](https://www.electronjs.org/docs/latest/api/app) references.
+
+## Recognition retry merges
+
+DocumentController binds source provenance only after a recognition document replacement succeeds. Additive retry merges compare a captured document capability and immutable score snapshot, then execute one validated musical batch. They retain the current native path, save baseline and normal recovery scheduling; no new document IPC or native file fields are introduced. Associations survive save/Save As within the current session, but successful replacement, reopening or recovery retires them. Recognition rules and provenance validation are described in src/recognition/README.md.

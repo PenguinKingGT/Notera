@@ -44,6 +44,8 @@ editor.redo()
 
 `parseScore(unknown)` returns a detached, deeply frozen snapshot or a `ScoreValidationError` with issue codes and paths. Commands compose new data and validate once at transaction completion; `batch` publishes all edits together or none. Event replacement preserves the event ID; callers retain the IDs of unchanged notes. Explicit event deletion removes its anchored marks; replacement rejects broken marks unless the same batch repairs them.
 
+`insert-measures` inserts an explicitly supplied set of measures before an existing measure identity or at the end, with explicit new voices and marks. A batch validates the complete result once; missing anchors, duplicate IDs or broken existing ties reject the entire edit without changing history. This command is generic musical content insertion, with no AI/source ownership in the core.
+
 `append-measure` appends a fully specified measure without generating identities or copying content implicitly. Continuous input can batch this command with the first event of the new bar, so undo removes both together. Inserting into an omitted, known voice lane materializes that empty lane only when content is added.
 
 `ScoreEditor` keeps bounded snapshot history (100 transactions by default). Failed commands and no-ops preserve history and revision. A successful edit after undo discards redo. Save tracking compares content with the confirmed saved snapshot; supplying an older saved snapshot keeps subsequent edits dirty. New documents without a file path still need the desktop layer to track that they have never been saved.

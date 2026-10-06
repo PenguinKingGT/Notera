@@ -9,6 +9,13 @@ import type {
   NotationView,
 } from '../shared/desktop-api'
 import { EditorSession } from './session'
+import type { RecognitionImport } from '../shared/recognition-api'
+import { planRecognitionMerge, recognitionLedger } from '../recognition/merge'
+import type {
+  RecognitionLedger,
+  RecognitionMergeMode,
+  RecognitionMergeTarget,
+} from '../recognition/merge'
 
 /** Replacement intentions share one save/discard/cancel decision. */
 export type DocumentAction =
@@ -47,6 +54,8 @@ export class DocumentController {
   #scheduled: { score: Score; dirty: boolean; documentId: string } | null = null
   #unsubscribe: (() => void) | null = null
   #recognized: Score | null = null
+  #recognizedOrigin: RecognitionLedger | null = null
+  #recognition: { documentId: string; ledger: RecognitionLedger } | null = null
 
   /** Bind only the narrow desktop API and a provider for the original bundled sample. */
   constructor(
@@ -169,7 +178,7 @@ export class DocumentController {
   }
 
   /** Stage validated recognition music before asking the existing save/discard/cancel question. */
-  importRecognition(score: Score): boolean {
+  importRecognition(score: Score, origin?: RecognitionImport): boolean {
     if (
       !this.#state.ready ||
       this.#state.busy ||
@@ -180,12 +189,79 @@ export class DocumentController {
     }
     try {
       this.#recognized = parseScore(score)
+      this.#recognizedOrigin = origin ? recognitionLedger(origin) : null
+      if (origin && JSON.stringify(origin.score) !== JSON.stringify(score)) {
+        throw new Error('Recognition provenance does not match music')
+      }
     } catch {
+      this.#recognized = null
+      this.#recognizedOrigin = null
       this.publish({ error: '识谱结果不是有效乐谱，当前音乐已保留。' })
       return false
     }
     this.request('recognition')
     return true
+  }
+
+  /** Associate only the currently imported task with its live document; reopening or replacement cannot reuse it. */
+  recognitionMergeTarget(taskId: string): RecognitionMergeTarget | null {
+    const document = this.#state.document
+    if (
+      !document ||
+      !this.#state.ready ||
+      this.#state.busy ||
+      this.#state.prompt ||
+      this.#state.startup ||
+      this.#recognition?.documentId !== document.documentId ||
+      this.#recognition.ledger.taskId !== taskId
+    ) {
+      return null
+    }
+    return {
+      documentId: document.documentId,
+      score: this.session.getSnapshot().score,
+    }
+  }
+
+  /** Apply missing source pages atomically to an unchanged captured target; preserve save capability and edited content. */
+  mergeRecognition(
+    result: RecognitionImport,
+    mode: RecognitionMergeMode,
+    target: RecognitionMergeTarget,
+  ): string | null {
+    const current = this.recognitionMergeTarget(result.taskId)
+    if (
+      !current ||
+      current.documentId !== target.documentId ||
+      current.score !== target.score
+    ) {
+      return '当前文档已变化或正在处理其他操作，请重新点击补入；已有音乐未修改。'
+    }
+    try {
+      const plan = planRecognitionMerge(
+        current.score,
+        this.#recognition!.ledger,
+        result,
+        mode,
+      )
+      if (!this.session.insertMeasures(plan.command)) {
+        return '补入会破坏已有音乐引用，当前乐谱已保留。可选择追加到末尾或导入新乐谱。'
+      }
+      this.#recognition = {
+        documentId: current.documentId,
+        ledger: plan.ledger,
+      }
+      this.publish({
+        error: null,
+        message: `已补入 ${plan.added} 个来源页，已有编辑保留；可撤销此次补入。`,
+      })
+      return null
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '补入失败，当前乐谱已保留。'
+      this.publish({ error: message })
+      return message
+    }
   }
 
   /** Guard replacements using the current music snapshot, including edits made during a previous save. */
@@ -221,6 +297,7 @@ export class DocumentController {
     if (!this.#state.busy) {
       if (this.#state.prompt === 'recognition') {
         this.#recognized = null
+        this.#recognizedOrigin = null
       }
       if (this.#state.prompt === 'close') {
         void this.api
@@ -367,6 +444,7 @@ export class DocumentController {
             : await this.api.openDocument()
         if (result.status === 'success') {
           this.session.reset(result.value.score, action === 'open')
+          this.#recognition = null
           this.publish({ document: result.value.document, prompt: null })
         } else {
           this.report(result)
@@ -388,7 +466,15 @@ export class DocumentController {
         const result = await this.api.createDocument(score)
         if (result.status === 'success') {
           this.session.reset(score, action === 'new')
+          this.#recognition =
+            action === 'recognition' && this.#recognizedOrigin
+              ? {
+                  documentId: result.value.documentId,
+                  ledger: this.#recognizedOrigin,
+                }
+              : null
           this.#recognized = null
+          this.#recognizedOrigin = null
           this.publish({ document: result.value, prompt: null })
         } else {
           this.report(result)
@@ -418,6 +504,7 @@ export class DocumentController {
       if (result.status === 'success') {
         if (result.value) {
           this.session.reset(result.value.score)
+          this.#recognition = null
           this.publish({
             document: result.value.document,
             message: '已恢复未保存乐谱，请选择位置保存。',

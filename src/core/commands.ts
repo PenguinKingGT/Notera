@@ -26,6 +26,13 @@ export type ScoreCommand =
   | { readonly kind: 'delete-mark'; readonly markId: string }
   | { readonly kind: 'set-title'; readonly title: string }
   | { readonly kind: 'append-measure'; readonly measure: Measure }
+  | {
+      readonly kind: 'insert-measures'
+      readonly beforeMeasureId: string | null
+      readonly measures: readonly Measure[]
+      readonly voices: Score['voices']
+      readonly marks: readonly ScoreMark[]
+    }
   | { readonly kind: 'batch'; readonly commands: readonly ScoreCommand[] }
 
 /** A command addressed nonexistent content or tried to change an existing event's identity. */
@@ -164,6 +171,28 @@ function applyUnchecked(score: Score, command: ScoreCommand): Score {
       return { ...score, title: command.title }
     case 'append-measure':
       return { ...score, measures: [...score.measures, command.measure] }
+    case 'insert-measures': {
+      const index =
+        command.beforeMeasureId === null
+          ? score.measures.length
+          : score.measures.findIndex(
+              (measure) => measure.id === command.beforeMeasureId,
+            )
+      if (index < 0) {
+        throw new ScoreCommandError('Insertion anchor no longer exists')
+      }
+      // Validate the complete insertion later, including existing ties or repeats affected by new measures.
+      return {
+        ...score,
+        voices: [...score.voices, ...command.voices],
+        measures: [
+          ...score.measures.slice(0, index),
+          ...command.measures,
+          ...score.measures.slice(index),
+        ],
+        marks: [...score.marks, ...command.marks],
+      }
+    }
     case 'batch':
       return command.commands.reduce(applyUnchecked, score)
     default:

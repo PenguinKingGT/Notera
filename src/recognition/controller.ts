@@ -3,9 +3,21 @@ import type {
   RecognitionApi,
   RecognitionSettings,
   RecognitionTask,
+  RecognitionImport,
 } from '../shared/recognition-api'
 import type { FileResult } from '../shared/desktop-api'
 import type { Score } from '../core'
+import type { RecognitionMergeMode, RecognitionMergeTarget } from './merge'
+
+/** Capture and apply against a live document without binding recognition requests to React or Electron. */
+export interface RecognitionMergePort {
+  capture: (taskId: string) => RecognitionMergeTarget | null
+  apply: (
+    result: RecognitionImport,
+    mode: RecognitionMergeMode,
+    target: RecognitionMergeTarget,
+  ) => string | null
+}
 
 /** Cached view state contains only public settings and source metadata. */
 export interface RecognitionState {
@@ -29,7 +41,8 @@ export class RecognitionController {
   /** Bind only the fixed preload API; accepted music is passed to the existing document decision flow. */
   constructor(
     readonly api: RecognitionApi,
-    readonly accept: (score: Score) => boolean,
+    readonly accept: (score: Score, origin?: RecognitionImport) => boolean,
+    readonly merge?: RecognitionMergePort,
   ) {}
 
   /** Return the same reference until metadata or an operation state changes. */
@@ -199,14 +212,14 @@ export class RecognitionController {
     }
     let accepted = false
     await this.operation(async () => {
-      const score = this.value(
+      const result = this.value(
         await this.api.result({
           taskId: task.id,
           sourceIds: task.sources.map((source) => source.id),
         }),
       )
-      if (score) {
-        accepted = this.accept(score)
+      if (result) {
+        accepted = this.accept(result.score, result)
         if (!accepted) {
           this.publish({
             error: '当前文档正在处理其他操作，请稍后再导入。识别结果仍然保留。',
@@ -215,5 +228,40 @@ export class RecognitionController {
       }
     })
     return accepted
+  }
+
+  /** Fetch validated results and explicitly add only missing pages to a captured, still-current document. */
+  async mergeScore(mode: RecognitionMergeMode = 'ordered'): Promise<boolean> {
+    const task = this.#state.task
+    if (!task || task.running || !this.merge) {
+      return false
+    }
+    const target = this.merge.capture(task.id)
+    if (!target) {
+      this.publish({
+        error:
+          '当前乐谱与此任务没有有效关联，请先导入成功页为新乐谱。重新打开或重启后也需创建新谱。',
+      })
+      return false
+    }
+    let merged = false
+    await this.operation(async () => {
+      const result = this.value(
+        await this.api.result({
+          taskId: task.id,
+          sourceIds: task.sources.map((source) => source.id),
+        }),
+      )
+      if (result) {
+        const error = this.merge!.apply(result, mode, target)
+        merged = error === null
+        this.publish(
+          error
+            ? { error }
+            : { message: '补识别页已加入当前乐谱，已有编辑保留，可撤销。' },
+        )
+      }
+    })
+    return merged
   }
 }

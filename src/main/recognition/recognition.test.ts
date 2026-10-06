@@ -577,6 +577,14 @@ describe('sources and task ownership', () => {
       ),
     ).toEqual(['success', 'error'])
     expect(service.result({ taskId, sourceIds: ids }).measures).toHaveLength(1)
+    const partial = service.resultWithSources({ taskId, sourceIds: ids })
+    expect(partial.sourceOrder).toEqual(ids)
+    expect(partial.fragments).toEqual([
+      {
+        sourceId: ids[0],
+        measureIds: partial.score.measures.map((measure) => measure.id),
+      },
+    ])
     await service.run({ taskId, sourceIds: [ids[1]] })
     expect(request).toHaveBeenCalledTimes(3)
     expect(request.mock.calls[2][1]?.body).toContain('source page 2')
@@ -586,6 +594,16 @@ describe('sources and task ownership', () => {
     expect(first.kind === 'note' && first.notes[0].pitch.step).toBe('D')
     expect(() => parseScore(merged)).not.toThrow()
     expect(merged.measures[0].id).not.toBe(merged.measures[1].id)
+    const complete = service.resultWithSources({
+      taskId,
+      sourceIds: [...ids].reverse(),
+    })
+    expect(complete.fragments.map((fragment) => fragment.sourceId)).toEqual(
+      [...ids].reverse(),
+    )
+    expect(
+      complete.fragments.flatMap((fragment) => fragment.measureIds),
+    ).toEqual(complete.score.measures.map((measure) => measure.id))
     service.dispose()
   })
 
